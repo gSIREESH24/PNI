@@ -31,8 +31,20 @@ def _normalize_exports(code: str) -> str:
     return re.sub(r"(?<![.\w])export\s*\(", "poly_export(", code)
 
 
+def _strip_hash_comments(code: str) -> str:
+    """Remove lines starting with # (Python comments invalid in JS)."""
+    lines = []
+    for line in code.splitlines():
+        if line.strip().startswith('#'):
+            lines.append('')   # keep line numbers intact
+        else:
+            lines.append(line)
+    return '\n'.join(lines)
+
+
 def run(code: str, context) -> dict:
     code = _normalize_exports(code)
+    code = _strip_hash_comments(code)
 
     # ── Inject shared globals into globalThis ─────────────────────────────
     global_lines: list[str] = []
