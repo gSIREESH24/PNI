@@ -47,6 +47,11 @@ def run(code: str, context) -> dict:
                                 param_types=param_types, return_type=return_type)
         exports[name] = func          # mark as exported so interpreter can log it
 
+    def export_class(name: str, cls, fields: dict[str, str]):
+        """Register a python class and its structural schema for the bridge."""
+        context.export_class_schema(name, fields)
+        exports[name] = cls           # mark as exported
+
     def get_global(name: str, default=None):
         v = context.get(name)
         return default if v is None else v
@@ -72,6 +77,7 @@ def run(code: str, context) -> dict:
     # Inject bridge helpers
     env["export"]          = export
     env["export_function"] = export_function
+    env["export_class"]    = export_class
     env["get_global"]      = get_global
     env["call"]            = call
     env["store_object"]    = store_object

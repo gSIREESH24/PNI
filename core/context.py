@@ -39,8 +39,13 @@ class Context:
     # ── Functions ─────────────────────────────────────────────────────────
 
     def export_function(self, name: str, func, language: str = "python",
-                        param_types=None, return_type: str = None):
-        self.bridge.export_function(name, func, language, param_types, return_type)
+                        param_types=None, return_type=None):
+        self.bridge.export_function(
+            name, func, language, param_types, return_type
+        )
+
+    def export_class_schema(self, name: str, fields: dict[str, str]):
+        self.bridge.export_class_schema(name, fields)
 
     def get_function(self, name: str):
         entry = self.bridge.registry.get_function(name)
@@ -48,6 +53,11 @@ class Context:
 
     def has_function(self, name: str) -> bool:
         return self.bridge.has_function(name)
+
+    def register_function_stub(self, name: str, language: str, source: str,
+                               return_type: str = "int"):
+        """Register a subprocess-language function stub (Milestone 3)."""
+        self.bridge.register_function_stub(name, language, source, return_type)
 
     def call(self, name: str, *args):
         return self.bridge.call(name, *args)
@@ -61,4 +71,7 @@ class Context:
         return self.bridge.load_object(handle)
 
     def delete_object(self, handle: int):
-        return self.bridge.delete_object(handle)
+        self.bridge.delete_object(handle)
+
+    def call_method(self, handle: int, method: str, *args):
+        return self.bridge.call_method(handle, method, *args)

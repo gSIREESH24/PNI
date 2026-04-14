@@ -44,6 +44,15 @@ class PolyBridge:
         """Register a callable in the global function table."""
         self.registry.export_function(name, func, language, param_types, return_type)
 
+    def export_class_schema(self, name: str, fields: dict[str, str]):
+        """Register a class schema for code-generation in other languages."""
+        self.registry.export_class_schema(name, fields)
+
+    def register_function_stub(self, name: str, language: str, source: str,
+                               return_type: str = "int"):
+        """Register a subprocess-language function stub (Milestone 3)."""
+        self.registry.register_stub(name, language, source, return_type)
+
     def call(self, name: str, *args):
         """Invoke a registered function by name through the dispatcher."""
         return self.dispatcher.call(name, *args)
@@ -67,3 +76,11 @@ class PolyBridge:
     def delete_object(self, handle: int):
         """Release an object handle."""
         self.store.delete(handle)
+
+    def call_method(self, handle: int, method: str, *args):
+        """Invoke a method on an object stored in the object store."""
+        obj = self.load_object(handle)
+        if obj is None:
+            raise ValueError(f"Invalid object handle: {handle}")
+        func = getattr(obj, method)
+        return func(*args)

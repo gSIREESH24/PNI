@@ -1,0 +1,100 @@
+# Example 15 — Python Function Called from ALL Languages
+#
+# Demonstrates Phase 3 Milestone 2:
+#   - export_function(name, fn)  in Python to register in the bridge
+#   - call_bridge(...)           in JS  to call it via pipe protocol
+#   - call_bridge_i/f/s(...)     in C   to call it via pipe protocol
+#   - call_bridge_i/f/s(...)     in C++ to call it via pipe protocol
+#   - call_bridge(name, args...) in Java to call it via pipe protocol
+#
+# The Python functions live in-process; each subprocess sends a
+# __POLY_CALL__ marker on stdout, Python executes the function and
+# writes the result as __POLY_RET__ to the subprocess stdin.
+
+python {
+    # Register three Python functions in the bridge
+
+    def square(x):
+        return x * x
+
+    def greet(name):
+        return f"Hello from Python, {name}!"
+
+    def add(a, b):
+        return a + b
+
+    export_function("square", square)
+    export_function("greet",  greet)
+    export_function("add",    add)
+
+    print("[Python] Registered: square, greet, add")
+}
+
+javascript {
+    let sq  = call_bridge("square", 9);
+    let msg = call_bridge("greet", "JavaScript");
+    let sum = call_bridge("add", 100, 200);
+
+    console.log("[JS] square(9)           = " + sq);
+    console.log("[JS] greet('JavaScript') = " + msg);
+    console.log("[JS] add(100, 200)       = " + sum);
+
+    poly_export("js_square", sq);
+    poly_export("js_sum",    sum);
+}
+
+c {
+    int main() {
+        long long sq  = call_bridge_i("square", "[7]");
+        double    sm  = call_bridge_f("add",    "[33, 17.5]");
+        const char *g = call_bridge_s("greet",  "[\"C Language\"]");
+
+        printf("[C] square(7)          = %lld\n", sq);
+        printf("[C] add(33, 17.5)      = %.1f\n", sm);
+        printf("[C] greet('C Language')= %s\n",   g);
+
+        export_value("c_square", sq);
+        return 0;
+    }
+}
+
+cpp {
+    int main() {
+        long long sq  = call_bridge_i("square",  "[12]");
+        double    sm  = call_bridge_f("add",     "[10.5, 4.5]");
+        std::string g = call_bridge_s("greet",   "[\"C++\"]");
+
+        std::cout << "[C++] square(12)      = " << sq  << std::endl;
+        std::cout << "[C++] add(10.5, 4.5)  = " << sm  << std::endl;
+        std::cout << "[C++] greet('C++')    = " << g   << std::endl;
+
+        export_value("cpp_square", sq);
+        return 0;
+    }
+}
+
+java {
+    class Main {
+        public static void main(String[] args) {
+            Object sq  = call_bridge("square", 5);
+            Object g   = call_bridge("greet",  "Java");
+            Object sum = call_bridge("add",    25, 75);
+
+            System.out.println("[Java] square(5)       = " + sq);
+            System.out.println("[Java] greet('Java')   = " + g);
+            System.out.println("[Java] add(25, 75)     = " + sum);
+
+            export_value("java_square", ((Long)sq).longValue());
+        }
+    }
+}
+
+python {
+    # Final block: verify all results came back correctly
+    print("\n[Python] Cross-language function call results:")
+    print(f"  JS  square(9)  = {get_global('js_square')}")
+    print(f"  JS  add(100+200)= {get_global('js_sum')}")
+    print(f"  C   square(7)  = {get_global('c_square')}")
+    print(f"  C++ square(12) = {get_global('cpp_square')}")
+    print(f"  Java square(5) = {get_global('java_square')}")
+}
