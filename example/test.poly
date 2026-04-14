@@ -1,0 +1,42 @@
+global {
+    x = 10
+    message = "Hello"
+}
+
+python {
+    y = x + 5
+    print(f"Python sees: {message}, {y}")
+    export("py_result", y)
+}
+
+javascript {
+    console.log("JS sees:", x, message);
+    poly_export("js_result", x * 2);
+}
+
+c {
+    #include <stdio.h>
+    int main() {
+        printf("C sees x = %lld\n", x);
+        export_value("c_result", x + 100);
+        return 0;
+    }
+}
+
+c++ {
+    #include <iostream>
+    int main() {
+        std::cout << "C++ sees message: " << message << std::endl;
+        export_value("cpp_result", 999);
+        return 0;
+    }
+}
+
+java {
+    class Main {
+        public static void main(String[] args) {
+            System.out.println("Java sees x = " + x);
+            export_value("java_result", 1234);
+        }
+    }
+}

@@ -1,0 +1,84 @@
+# Example 08 — All Primitive Types Across All Languages
+#
+# Demonstrates:
+#   - int, float, bool, string defined in global block
+#   - Every language reads all four types correctly
+#   - Every language exports one value of each type back
+#   - Final bridge state shows all values
+
+global {
+    g_int    = 42
+    g_float  = 2.718
+    g_bool   = True
+    g_string = "polyglot"
+}
+
+python {
+    print(f"[Python] int    = {g_int}   type={type(g_int).__name__}")
+    print(f"[Python] float  = {g_float} type={type(g_float).__name__}")
+    print(f"[Python] bool   = {g_bool}  type={type(g_bool).__name__}")
+    print(f"[Python] string = {g_string} type={type(g_string).__name__}")
+
+    export("py_int",    g_int    + 1)
+    export("py_float",  g_float  * 2.0)
+    export("py_bool",   not g_bool)
+    export("py_string", g_string + "-py")
+}
+
+javascript {
+    console.log("[JS] int    = " + typeof get_global("g_int")    + ": " + get_global("g_int"));
+    console.log("[JS] float  = " + typeof get_global("g_float")  + ": " + get_global("g_float"));
+    console.log("[JS] bool   = " + typeof get_global("g_bool")   + ": " + get_global("g_bool"));
+    console.log("[JS] string = " + typeof get_global("g_string") + ": " + get_global("g_string"));
+
+    poly_export("js_int",    g_int    + 10);
+    poly_export("js_float",  g_float  + 1.0);
+    poly_export("js_bool",   !g_bool);
+    poly_export("js_string", g_string + "-js");
+}
+
+c {
+    int main() {
+        printf("[C] int    = %lld\n",  g_int);
+        printf("[C] float  = %.3f\n",  g_float);
+        printf("[C] bool   = %s\n",    g_bool ? "true" : "false");
+        printf("[C] string = %s\n",    g_string);
+
+        export_value("c_int",    g_int    * 10);
+        export_value("c_float",  g_float  * 3.0);
+        export_value("c_bool",   (_Bool)(g_bool == 0));
+        export_value("c_string", "c-result");
+        return 0;
+    }
+}
+
+cpp {
+    int main() {
+        std::cout << "[C++] int    = " << g_int    << std::endl;
+        std::cout << "[C++] float  = " << g_float  << std::endl;
+        std::cout << "[C++] bool   = " << std::boolalpha << (bool)g_bool << std::endl;
+        std::cout << "[C++] string = " << g_string << std::endl;
+
+        export_value("cpp_int",    g_int    * 100LL);
+        export_value("cpp_float",  g_float  * 10.0);
+        export_value("cpp_bool",   true);
+        export_value("cpp_string", std::string(g_string) + "-cpp");
+        return 0;
+    }
+}
+
+java {
+    class Main {
+        public static void main(String[] args) {
+            System.out.println("[Java] int    = " + g_int);
+            System.out.println("[Java] float  = " + g_float);
+            System.out.println("[Java] bool   = " + g_bool);
+            System.out.println("[Java] string = " + g_string);
+
+            export_value("java_int",    (int)(g_int * 1000));
+            export_value("java_float",  g_float * 100.0);
+            export_value("java_bool",   !g_bool);
+            export_value("java_string", g_string + "-java");
+        }
+    }
+}

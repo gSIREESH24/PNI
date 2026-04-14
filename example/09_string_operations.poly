@@ -1,0 +1,60 @@
+# Example 09 — String Operations Across All Languages
+#
+# Demonstrates:
+#   - A string defined globally and transformed by each language
+#   - Each language appends its tag and exports the new string
+#   - Strings flow in sequence: Python -> JS -> C -> C++ -> Java
+
+global {
+    original = "Hello"
+}
+
+python {
+    py_str = original + ", World"
+    export("py_str", py_str)
+    print(f"[Python] '{original}' -> '{py_str}'")
+}
+
+javascript {
+    const js_str = get_global("py_str") + "!";
+    poly_export("js_str", js_str);
+    console.log("[JS] '" + get_global("py_str") + "' -> '" + js_str + "'");
+}
+
+c {
+    int main() {
+        // Concat in C using a buffer
+        char combined[256];
+        snprintf(combined, sizeof(combined), "%s [from-C]", js_str);
+        printf("[C] '%s' -> '%s'\n", js_str, combined);
+        export_value("c_str", combined);
+        return 0;
+    }
+}
+
+cpp {
+    int main() {
+        std::string cpp_str = std::string(c_str) + " [from-C++]";
+        std::cout << "[C++] '" << c_str << "' -> '" << cpp_str << "'" << std::endl;
+        export_value("cpp_str", cpp_str);
+        return 0;
+    }
+}
+
+java {
+    class Main {
+        public static void main(String[] args) {
+            String java_str = cpp_str + " [from-Java]";
+            System.out.println("[Java] '" + cpp_str + "' -> '" + java_str + "'");
+            export_value("java_str",  java_str);
+            export_value("str_length", java_str.length());
+        }
+    }
+}
+
+python {
+    final_str = get_global("java_str")
+    length    = get_global("str_length")
+    print(f"[Python Block 2] Final string ({length} chars):")
+    print(f"  '{final_str}'")
+}

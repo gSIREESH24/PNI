@@ -1,0 +1,75 @@
+# Example 12 — Boolean Flags Set and Read Across Languages
+#
+# Demonstrates:
+#   - Boolean values exported from Python
+#   - Each language reads and interprets them
+#   - Each language exports its own boolean decision
+#   - Conditional logic driven by a shared flag across languages
+
+global {
+    is_production = False
+    max_retries   = 3
+}
+
+python {
+    # Python decides whether to proceed based on the flag
+    should_run = (not is_production) or (max_retries > 0)
+    export("should_run", should_run)
+    export("py_ready",   True)
+    print(f"[Python] is_production = {is_production}")
+    print(f"[Python] should_run    = {should_run}")
+    print(f"[Python] py_ready      = True")
+}
+
+javascript {
+    const prod    = get_global("is_production");
+    const run     = get_global("should_run");
+    const js_safe = !prod && run;
+
+    console.log("[JS] is_production = " + prod);
+    console.log("[JS] should_run    = " + run);
+    console.log("[JS] js_safe       = " + js_safe);
+
+    poly_export("js_safe", js_safe);
+}
+
+c {
+    int main() {
+        int c_go = (!is_production) && should_run && js_safe;
+        printf("[C] is_production = %s\n", is_production ? "true" : "false");
+        printf("[C] should_run    = %s\n", should_run    ? "true" : "false");
+        printf("[C] js_safe       = %s\n", js_safe       ? "true" : "false");
+        printf("[C] c_go          = %s\n", c_go          ? "true" : "false");
+        export_value("c_go", (_Bool)c_go);
+        return 0;
+    }
+}
+
+cpp {
+    int main() {
+        bool cpp_approved = c_go && (!is_production);
+        std::cout << "[C++] c_go         = " << std::boolalpha << (bool)c_go       << std::endl;
+        std::cout << "[C++] cpp_approved = " << std::boolalpha << cpp_approved      << std::endl;
+        export_value("cpp_approved", cpp_approved);
+        return 0;
+    }
+}
+
+java {
+    class Main {
+        public static void main(String[] args) {
+            boolean all_clear = cpp_approved && c_go && should_run && py_ready;
+            System.out.println("[Java] cpp_approved = " + cpp_approved);
+            System.out.println("[Java] all_clear    = " + all_clear);
+            export_value("all_clear", all_clear);
+            export_value("status_msg", all_clear ? "SYSTEM GO" : "SYSTEM HOLD");
+        }
+    }
+}
+
+python {
+    all_clear  = get_global("all_clear")
+    status_msg = get_global("status_msg")
+    print(f"[Python Block 2] all_clear  = {all_clear}")
+    print(f"[Python Block 2] status_msg = {status_msg}")
+}

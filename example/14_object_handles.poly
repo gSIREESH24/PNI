@@ -1,0 +1,84 @@
+# Example 14 — Python Object Handle Store
+#
+# Demonstrates:
+#   - Python storing a complex object (dict/list) in the bridge object store
+#   - Retrieving it by integer handle in a second Python block
+#   - Handles are safe bridge-opaque IDs — they never cross language boundaries
+#   - Subprocess languages (JS/C/Java) work with extracted scalar values instead
+
+global {
+    item_count = 3
+}
+
+python {
+    # Block 1: create a complex Python object and store it as a handle
+
+    inventory = {
+        "items": ["apple", "banana", "cherry"],
+        "prices": [1.20, 0.50, 2.80],
+        "currency": "USD"
+    }
+
+    # Store in the bridge object store — returns an integer handle
+    handle = store_object(inventory)
+
+    print(f"[Python Block 1] Stored inventory object with handle = {handle}")
+    print(f"[Python Block 1] inventory = {inventory}")
+
+    export("inventory_handle", handle)
+
+    # Also export scalars so other languages can see them
+    export("item_a_price", inventory["prices"][0])
+    export("item_b_price", inventory["prices"][1])
+    export("item_c_price", inventory["prices"][2])
+    export("currency",     inventory["currency"])
+}
+
+javascript {
+    # JS can't see the raw Python dict — but it can see the scalar exports
+    const a = get_global("item_a_price");
+    const b = get_global("item_b_price");
+    const c = get_global("item_c_price");
+    const total = a + b + c;
+    const cur   = get_global("currency");
+
+    console.log("[JS] prices: " + a + ", " + b + ", " + c);
+    console.log("[JS] total  = " + total + " " + cur);
+    poly_export("js_total", total);
+}
+
+c {
+    int main() {
+        // Use exported scalar prices
+        double total = item_a_price + item_b_price + item_c_price;
+        printf("[C] prices: %.2f + %.2f + %.2f = %.2f %s\n",
+               item_a_price, item_b_price, item_c_price, total, currency);
+        export_value("c_total", total);
+        return 0;
+    }
+}
+
+python {
+    # Block 2: retrieve the original Python object from the store by handle
+
+    handle    = get_global("inventory_handle")
+    recovered = load_object(handle)
+
+    print(f"[Python Block 2] Retrieved handle {handle} -> {type(recovered).__name__}")
+    print(f"[Python Block 2] items    = {recovered['items']}")
+    print(f"[Python Block 2] prices   = {recovered['prices']}")
+    print(f"[Python Block 2] currency = {recovered['currency']}")
+
+    py_total  = sum(recovered["prices"])
+    js_total  = get_global("js_total")
+    c_total   = get_global("c_total")
+
+    print(f"\n[Python Block 2] Totals computed across languages:")
+    print(f"  Python (from store) = {py_total:.2f}")
+    print(f"  JavaScript          = {js_total:.2f}")
+    print(f"  C                   = {c_total:.2f}")
+
+    # Release the handle when done
+    delete_object(handle)
+    print(f"\n[Python Block 2] Handle {handle} deleted from store.")
+}

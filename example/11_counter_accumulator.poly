@@ -1,0 +1,76 @@
+# Example 11 — Running Counter Incremented by Each Language
+#
+# Demonstrates:
+#   - A counter that starts at 0 and each language adds its own step
+#   - Each language reads the current counter from the bridge, increments, exports
+#   - Shows that the bridge acts as shared mutable state across languages
+#
+# Counter steps:
+#   global      = 0
+#   Python  +10 = 10
+#   JS      +5  = 15
+#   C       +3  = 18
+#   C++     +7  = 25
+#   Java    +2  = 27
+
+global {
+    counter = 0
+    step_py   = 10
+    step_js   = 5
+    step_c    = 3
+    step_cpp  = 7
+    step_java = 2
+}
+
+python {
+    new_counter = counter + step_py
+    export("counter", new_counter)
+    print(f"[Python] counter: {counter} + {step_py} = {new_counter}")
+}
+
+javascript {
+    const old = get_global("counter");
+    const step = get_global("step_js");
+    const updated = old + step;
+    poly_export("counter", updated);
+    console.log("[JS] counter: " + old + " + " + step + " = " + updated);
+}
+
+c {
+    int main() {
+        long long updated = counter + step_c;
+        printf("[C] counter: %lld + %lld = %lld\n", counter, step_c, updated);
+        export_value("counter", updated);
+        return 0;
+    }
+}
+
+cpp {
+    int main() {
+        long long updated = counter + step_cpp;
+        std::cout << "[C++] counter: " << counter << " + " << step_cpp
+                  << " = " << updated << std::endl;
+        export_value("counter", updated);
+        return 0;
+    }
+}
+
+java {
+    class Main {
+        public static void main(String[] args) {
+            long updated = counter + step_java;
+            System.out.println("[Java] counter: " + counter + " + " + step_java + " = " + updated);
+            export_value("counter",       updated);
+            export_value("counter_final", updated);
+        }
+    }
+}
+
+python {
+    final = get_global("counter_final")
+    expected = step_py + step_js + step_c + step_cpp + step_java
+    print(f"[Python Block 2] Final counter = {final}")
+    print(f"[Python Block 2] Expected      = {expected}")
+    assert final == expected, f"Mismatch! {final} != {expected}"
+    print("[Python Block 2] Counter verified correctly.")
+}

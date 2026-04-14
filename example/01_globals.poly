@@ -1,0 +1,62 @@
+# Example 01 — Shared Global Variables
+#
+# Demonstrates:
+#   - Defining int, float, bool, and string globals in a global block
+#   - Every language reading those globals automatically
+#   - No explicit get_global() needed for named variables in C/C++/Java
+#   - Python can use them as plain variables OR via get_global()
+
+global {
+    app_name    = "PolyBridge"
+    version     = 2
+    pi          = 3.14159
+    debug_mode  = True
+}
+
+python {
+    print(f"[Python] app_name   = {app_name}")
+    print(f"[Python] version    = {version}")
+    print(f"[Python] pi         = {pi}")
+    print(f"[Python] debug_mode = {debug_mode}")
+
+    # get_global() works too
+    print(f"[Python] via get_global: {get_global('app_name')}")
+}
+
+javascript {
+    console.log("[JS] app_name   = " + get_global("app_name"));
+    console.log("[JS] version    = " + get_global("version"));
+    console.log("[JS] pi         = " + get_global("pi"));
+    console.log("[JS] debug_mode = " + get_global("debug_mode"));
+}
+
+c {
+    int main() {
+        printf("[C] app_name   = %s\n",   app_name);
+        printf("[C] version    = %lld\n", version);
+        printf("[C] pi         = %.5f\n", pi);
+        printf("[C] debug_mode = %s\n",   debug_mode ? "true" : "false");
+        return 0;
+    }
+}
+
+cpp {
+    int main() {
+        std::cout << "[C++] app_name   = " << app_name   << std::endl;
+        std::cout << "[C++] version    = " << version    << std::endl;
+        std::cout << "[C++] pi         = " << pi         << std::endl;
+        std::cout << "[C++] debug_mode = " << std::boolalpha << (bool)debug_mode << std::endl;
+        return 0;
+    }
+}
+
+java {
+    class Main {
+        public static void main(String[] args) {
+            System.out.println("[Java] app_name   = " + app_name);
+            System.out.println("[Java] version    = " + version);
+            System.out.println("[Java] pi         = " + pi);
+            System.out.println("[Java] debug_mode = " + debug_mode);
+        }
+    }
+}

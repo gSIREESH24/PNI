@@ -1,0 +1,50 @@
+# Example 03 — Python-to-Python Function Call Through the Bridge
+#
+# Demonstrates:
+#   - export_function(name, callable) to register a function globally
+#   - call(name, *args) to invoke it from a different Python block
+#   - The dispatcher routes the call through the bridge (Milestone A)
+#
+# This is the JNI-style call pattern applied to Python-to-Python first.
+
+python {
+    # Block 1: Register functions in the global bridge
+
+    def add(a, b):
+        return a + b
+
+    def multiply(a, b):
+        return a * b
+
+    def greet(name):
+        return f"Hello, {name}! Welcome to Phase-2."
+
+    export_function("add",      add)
+    export_function("multiply", multiply)
+    export_function("greet",    greet)
+
+    print("[Python Block 1] Registered: add, multiply, greet")
+}
+
+python {
+    # Block 2: Call the registered functions through the bridge
+
+    sum_result  = call("add",      10, 20)
+    prod_result = call("multiply", 6,  7)
+    greeting    = call("greet",    "Polyglot")
+
+    print(f"[Python Block 2] add(10, 20)       = {sum_result}")
+    print(f"[Python Block 2] multiply(6, 7)    = {prod_result}")
+    print(f"[Python Block 2] greet('Polyglot') = {greeting}")
+
+    export("sum_result",  sum_result)
+    export("prod_result", prod_result)
+    export("greeting",    greeting)
+}
+
+javascript {
+    # The exported results are now visible to JS too
+    console.log("[JS] sum_result  = " + get_global("sum_result"));
+    console.log("[JS] prod_result = " + get_global("prod_result"));
+    console.log("[JS] greeting    = " + get_global("greeting"));
+}

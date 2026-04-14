@@ -1,0 +1,113 @@
+# Example 13 — Full Production Pipeline
+#
+# Demonstrates the complete bridge in a realistic scenario:
+#   A data processing pipeline where each language plays to its strengths.
+#
+# Pipeline:
+#   global         → defines raw input parameters
+#   Python         → data validation and preprocessing
+#   JavaScript     → JSON-style formatting and label generation
+#   C              → high-performance integer scoring computation
+#   C++            → classification using the score
+#   Java           → final report generation and formatting
+#   Python (final) → aggregation and summary
+
+global {
+    raw_value   = 87
+    max_value   = 100
+    min_value   = 0
+    label_prefix = "Report"
+}
+
+python {
+    # Step 1: Validate and normalise input
+    valid = (min_value <= raw_value <= max_value)
+    normalized = raw_value / max_value   # 0.0 to 1.0
+
+    if not valid:
+        normalized = 0.0
+
+    export("is_valid",   valid)
+    export("normalized", normalized)
+    export("py_note",    f"Normalised {raw_value}/{max_value} = {normalized:.3f}")
+
+    print(f"[Python] raw={raw_value} valid={valid} normalized={normalized:.3f}")
+}
+
+javascript {
+    const norm   = get_global("normalized");
+    const valid  = get_global("is_valid");
+    const prefix = get_global("label_prefix");
+
+    // Build a label and a percentage
+    const pct   = (norm * 100).toFixed(1);
+    const label = prefix + "-" + (valid ? "VALID" : "INVALID") + "-" + pct + "%";
+
+    console.log("[JS] pct   = " + pct);
+    console.log("[JS] label = " + label);
+
+    poly_export("pct_str", pct);
+    poly_export("label",   label);
+}
+
+c {
+    int main() {
+        // High-performance integer score: multiply normalized by 1000
+        long long score = (long long)(normalized * 1000.0);
+        printf("[C] normalized = %.4f\n", normalized);
+        printf("[C] score      = %lld\n", score);
+        export_value("score", score);
+        return 0;
+    }
+}
+
+cpp {
+    int main() {
+        // Classify score into tier
+        std::string tier;
+        if      (score >= 900) tier = "PLATINUM";
+        else if (score >= 750) tier = "GOLD";
+        else if (score >= 600) tier = "SILVER";
+        else if (score >= 400) tier = "BRONZE";
+        else                   tier = "BASIC";
+
+        std::cout << "[C++] score = " << score << " -> tier = " << tier << std::endl;
+        export_value("tier",       tier);
+        export_value("is_premium", score >= 750);
+        return 0;
+    }
+}
+
+java {
+    class Main {
+        public static void main(String[] args) {
+            // Generate final report string
+            String report = String.format(
+                "[%s] Score=%d | Tier=%s | %s | %s",
+                label_prefix,
+                score,
+                tier,
+                is_premium ? "PREMIUM" : "STANDARD",
+                label
+            );
+            System.out.println("[Java] " + report);
+            export_value("final_report", report);
+            export_value("report_score", score);
+            export_value("report_tier",  tier);
+        }
+    }
+}
+
+python {
+    # Final aggregation
+    report     = get_global("final_report")
+    score      = get_global("report_score")
+    tier       = get_global("report_tier")
+    is_premium = get_global("is_premium")
+
+    print(f"\n[Python Final Summary]")
+    print(f"  Score      : {score}")
+    print(f"  Tier       : {tier}")
+    print(f"  Premium    : {is_premium}")
+    print(f"  Full Report: {report}")
+}

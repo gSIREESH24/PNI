@@ -1,0 +1,67 @@
+global {
+    x       = 10
+    message = "Hello from Global!"
+}
+
+python {
+    print(f"[Python] x       = {x}")
+    print(f"[Python] message = {message}")
+    py_result = x + 5
+    export("py_result", py_result)
+    print(f"[Python] exported py_result = {py_result}")
+}
+
+javascript {
+    const xv   = get_global("x");
+    const msg  = get_global("message");
+    const pr   = get_global("py_result");
+
+    console.log("[JS] x         = " + xv);
+    console.log("[JS] message   = " + msg);
+    console.log("[JS] py_result = " + pr);
+
+    const js_result = pr * 2;
+    poly_export("js_result", js_result);
+    console.log("[JS] exported js_result = " + js_result);
+}
+
+c {
+    int main() {
+        printf("[C] x         = %lld\n", x);
+        printf("[C] message   = %s\n",   message);
+        printf("[C] js_result = %lld\n", js_result);
+
+        long long c_result = js_result + 10;
+        export_value("c_result", c_result);
+        printf("[C] exported c_result = %lld\n", c_result);
+        return 0;
+    }
+}
+
+cpp {
+    int main() {
+        std::cout << "[C++] x         = " << x         << std::endl;
+        std::cout << "[C++] message   = " << message   << std::endl;
+        std::cout << "[C++] c_result  = " << c_result  << std::endl;
+
+        long long cpp_result = c_result * 2;
+        export_value("cpp_result", cpp_result);
+        std::cout << "[C++] exported cpp_result = " << cpp_result << std::endl;
+        return 0;
+    }
+}
+
+java {
+    class Main {
+        public static void main(String[] args) {
+            System.out.println("[Java] x          = " + x);
+            System.out.println("[Java] message    = " + message);
+            System.out.println("[Java] cpp_result = " + cpp_result);
+
+            long java_result = cpp_result + 100L;
+            export_value("java_result",  java_result);
+            export_value("final_status", "Phase-2 Complete!");
+            System.out.println("[Java] exported java_result = " + java_result);
+        }
+    }
+}
