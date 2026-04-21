@@ -10,7 +10,7 @@ The framework runs as a single **Master Python Process** that launches and orche
 
 ```mermaid
 flowchart TD
-    subgraph MasterProcess["Master Process (Python)"]
+    subgraph Master_Process_Python
         CLI[poly.py] --> Interpreter[core/interpreter.py]
         Interpreter --> Bridge[bridge/poly_bridge.py]
         
@@ -19,14 +19,14 @@ flowchart TD
         Bridge --> Dispatch[Dispatcher]
     end
 
-    subgraph Subprocesses["Subprocesses (Piped execution)"]
+    subgraph Subprocesses_Piped_Execution
         Dispatch --> |"spawn & pipe"| C_Lang[C Executable]
         Dispatch --> |"spawn & pipe"| Node[JavaScript V8]
         Dispatch --> |"spawn & pipe"| Java[JVM]
     end
 
-    Context ..->|"JSON Inject"| Node
-    Context ..->|"String Inject"| C_Lang
+    Context -.->|"JSON Inject"| Node
+    Context -.->|"String Inject"| C_Lang
 ```
 
 ---
@@ -62,14 +62,14 @@ This is the cornerstone of Phase 3. It allows languages to interact *after* they
 
 ```mermaid
 flowchart LR
-    subgraph CompiledSubprocess["Compiled Subprocess (e.g. C++)"]
+    subgraph Compiled_Subprocess
         App[C++ Code] -->|call_bridge| SysOut[stdout buffer]
         SysIn[stdin buffer] -->|read| App
     end
 
     SysOut -->|__POLY_CALL__| PipeRunner[bridge/pipe_runner.py]
 
-    subgraph HostMasterProcess["Host Master Process"]
+    subgraph Host_Master_Process
         PipeRunner -->|parse| Dispatcher
         Dispatcher -->|execute| PyFunc[Python Memory]
         PyFunc -->|return value| PipeRunner
@@ -112,7 +112,7 @@ Using **Integer Handle IDs** mapped to auto-generated Proxy Code.
 
 ```mermaid
 flowchart TD
-    subgraph PythonMaster["Python Master"]
+    subgraph Python_Master
         PyObj[Python 'Counter' Instance]
         Store[(Object Store)]
         PyObj <--> |Assigned Handle: #4| Store
@@ -120,7 +120,7 @@ flowchart TD
 
     Store --> |"Exports Schema & Handle #4"| Java_Compiler
 
-    subgraph JavaProcess["Java Process"]
+    subgraph Java_Process
         Java_Compiler --> |"Generates Native Class"| Proxy[Java 'Counter' Proxy]
         Proxy --> |"Holds local variable handle=4"| Logic
         
