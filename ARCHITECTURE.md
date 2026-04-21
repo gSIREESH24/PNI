@@ -10,7 +10,7 @@ The framework runs as a single **Master Python Process** that launches and orche
 
 ```mermaid
 flowchart TD
-    subgraph Master Process (Python)
+    subgraph MasterProcess["Master Process (Python)"]
         CLI[poly.py] --> Interpreter[core/interpreter.py]
         Interpreter --> Bridge[bridge/poly_bridge.py]
         
@@ -19,7 +19,7 @@ flowchart TD
         Bridge --> Dispatch[Dispatcher]
     end
 
-    subgraph Subprocesses (Piped execution)
+    subgraph Subprocesses["Subprocesses (Piped execution)"]
         Dispatch --> |"spawn & pipe"| C_Lang[C Executable]
         Dispatch --> |"spawn & pipe"| Node[JavaScript V8]
         Dispatch --> |"spawn & pipe"| Java[JVM]
@@ -62,14 +62,14 @@ This is the cornerstone of Phase 3. It allows languages to interact *after* they
 
 ```mermaid
 flowchart LR
-    subgraph Compiled Subprocess (e.g. C++)
+    subgraph CompiledSubprocess["Compiled Subprocess (e.g. C++)"]
         App[C++ Code] -->|call_bridge| SysOut[stdout buffer]
         SysIn[stdin buffer] -->|read| App
     end
 
     SysOut -->|__POLY_CALL__| PipeRunner[bridge/pipe_runner.py]
 
-    subgraph Host Master Process
+    subgraph HostMasterProcess["Host Master Process"]
         PipeRunner -->|parse| Dispatcher
         Dispatcher -->|execute| PyFunc[Python Memory]
         PyFunc -->|return value| PipeRunner
@@ -112,7 +112,7 @@ Using **Integer Handle IDs** mapped to auto-generated Proxy Code.
 
 ```mermaid
 flowchart TD
-    subgraph Python Master
+    subgraph PythonMaster["Python Master"]
         PyObj[Python 'Counter' Instance]
         Store[(Object Store)]
         PyObj <--> |Assigned Handle: #4| Store
@@ -120,7 +120,7 @@ flowchart TD
 
     Store --> |"Exports Schema & Handle #4"| Java_Compiler
 
-    subgraph Java Process
+    subgraph JavaProcess["Java Process"]
         Java_Compiler --> |"Generates Native Class"| Proxy[Java 'Counter' Proxy]
         Proxy --> |"Holds local variable handle=4"| Logic
         
