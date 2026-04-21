@@ -38,7 +38,8 @@ def interpret(program_node):
             continue
 
         try:
-            exports = runner(code, context)
+            result = runner(code, context)
+            exports = result[0] if isinstance(result, tuple) else result
         except Exception as exc:
             print(f"[Bridge] ERROR in {lang} block: {exc}", flush=True)
             exports = {}

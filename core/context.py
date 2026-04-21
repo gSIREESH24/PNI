@@ -60,7 +60,7 @@ class Context:
         self.bridge.register_function_stub(name, language, source, return_type)
 
     def call(self, name: str, *args):
-        return self.bridge.call(name, *args)
+        return self.bridge.call(name, *args, context=self)
 
     # ── Object handles ────────────────────────────────────────────────────
 

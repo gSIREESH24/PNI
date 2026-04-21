@@ -48,6 +48,32 @@ def _encode_result(result) -> str:
     # Fallback: stringify
     return f"{RET_MARKER}str|{str(result)}\n"
 
+def _decode_ret(line: str):
+    """Parse a __POLY_RET__|type|value line and return a Python value."""
+    if not line.startswith(RET_MARKER):
+        return None
+    body = line[len(RET_MARKER):]
+    idx  = body.find("|")
+    if idx < 0:
+        return None
+    typ = body[:idx]
+    val = body[idx + 1:].rstrip("\r\n")
+
+    if typ == "int":
+        try:    return int(val)
+        except ValueError: return None
+    if typ == "float":
+        try:    return float(val)
+        except ValueError: return None
+    if typ == "bool":
+        return val.lower() == "true"
+    if typ == "null":
+        return None
+    # str — unescape
+    return (val.replace("\\n", "\n")
+               .replace("\\r", "\r")
+               .replace("\\\\", "\\"))
+
 
 # ── Interactive runner ────────────────────────────────────────────────────────
 
@@ -72,7 +98,7 @@ def run_interactive(
 
     Returns
     -------
-    dict of all exports collected during the run.
+    (dict, Any): A tuple containing dict of all exports and a return value if execution emits a RET_MARKER (for stubs).
     """
     proc = subprocess.Popen(
         cmd,
@@ -85,6 +111,7 @@ def run_interactive(
     )
 
     exports: dict       = {}
+    stub_return_value   = None
     stderr_lines: list  = []
 
     # ── Drain stderr in a background thread to prevent pipe deadlocks ─────────
@@ -173,6 +200,11 @@ def run_interactive(
                 exports.update(parsed)
                 continue
 
+            # ── Return marker (Stubs) ────────────────────────────────────────
+            if line.startswith(RET_MARKER):
+                stub_return_value = _decode_ret(line)
+                continue
+
             # ── Normal output ────────────────────────────────────────────────
             print(line)
 
@@ -189,4 +221,4 @@ def run_interactive(
     if stderr_lines:
         print("\n".join(stderr_lines))
 
-    return exports
+    return exports, stub_return_value

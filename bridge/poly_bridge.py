@@ -53,9 +53,9 @@ class PolyBridge:
         """Register a subprocess-language function stub (Milestone 3)."""
         self.registry.register_stub(name, language, source, return_type)
 
-    def call(self, name: str, *args):
+    def call(self, name: str, *args, context=None):
         """Invoke a registered function by name through the dispatcher."""
-        return self.dispatcher.call(name, *args)
+        return self.dispatcher.call(name, *args, context=context)
 
     def has_function(self, name: str) -> bool:
         return self.registry.has_function(name)

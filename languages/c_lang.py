@@ -178,9 +178,9 @@ static int _parse_ret_b() {{
     return 0;
 }}
 static const char* _parse_ret_s() {{
-    char *p = strstr(__poly_ret_buf, "|string|");
+    char *p = strstr(__poly_ret_buf, "|str|");
     if (!p) return "";
-    p += 8;
+    p += 5;
     size_t len = strlen(p);
     while (len > 0 && (p[len-1] == '\\n' || p[len-1] == '\\r')) {{ p[--len] = '\\0'; }}
     return p;

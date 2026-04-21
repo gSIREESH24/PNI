@@ -1,352 +1,217 @@
-# Polyglot Runtime
+# 🌐 Polyglot Runtime Framework (The Universal Bridge)
 
-A system that runs code in multiple languages (Python, JavaScript, C, Java, and C++) in a single `.poly` file.
+Welcome to the Polyglot Runtime Framework! This project allows you to seamlessly intertwine **Python, JavaScript, C, Java, and C++** code inside a single `.poly` file. 
 
----
+But it’s much more than just a multi-language script runner. It features a **Universal Memory and Function Bridge**. This means variables, objects, and functions are completely shared. A loop running in C can call an API written in JavaScript, which modifies an Object residing in Python's memory—all natively, and all in true real-time.
 
-## Table of Contents
-1. [Overview](#overview)
-2. [Step-by-Step Flow](#step-by-step-flow)
-3. [Project Structure](#project-structure)
-4. [Usage](#usage)
+> 📚 **Looking for visual diagrams of how everything works?** 
+> Check out the exhaustive [Architecture & Diagrams Guide (ARCHITECTURE.md)](ARCHITECTURE.md) covering all features from IPC parsing to Global OOP methods!
 
 ---
 
-## Overview
+## ✨ Features at a Glance
 
-The Polyglot Runtime allows you to write a single `.poly` file containing code blocks in different programming languages (Python, JavaScript, C, Java, and C++). The runtime:
-- **Parses** the `.poly` file to extract language-specific code blocks
-- **Shares variables** across languages using a global context
-- **Executes** each block with the appropriate language runtime
-- **Manages** compilation and execution for compiled languages like C, C++, and Java
+* **Unified Memory:** Define an integer or string in Python, read it in JavaScript, modify it in C.
+* **Vice-Versa Calling:** Any language can call a function located in any other language.
+* **Global OOP Methods:** Pass an object instance from one language to another and call its methods across the divide.
+* **No Heavy JNI:** Everything relies on highly optimized standard I/O pipes rather than complex compiled binary headers.
 
 ---
 
-## Step-by-Step Flow
+## 🧠 How It Works: The 5 Pillars of Polyglot
 
-### **Step 1: Entry Point (`poly.py`)**
+Anyone reading this for the first time can easily understand the underlying engineering. We built this up in five distinct phases. Here is exactly how it works under the hood.
+
+### Pillar 1: The `.poly` Parser
+When you run `python poly.py my_script.poly`, the central Python coordinator reads the file. The `core/parser.py` slices the file boundaries using the brackets `{ }`.
+
+```mermaid
+flowchart LR
+    A["my_script.poly"] -->|Parsed By| B["core/parser.py"]
+    B --> C["Python Node"]
+    B --> D["JS Node"]
+    B --> E["Java Node"]
 ```
-User runs: python poly.py script.poly
-    ↓
-- Reads the .poly file containing mixed language code
-- Calls parse() to break it into language blocks
-- Calls interpret() to execute each block
+The `interpreter.py` then takes these nodes and processes them sequentially from top to bottom.
+
+---
+
+### Pillar 2: Global Memory Context (Unidirectional Sharing)
+Languages inherently cannot share RAM. V8 (JavaScript) and GCC (C++) run in total isolation. 
+To bypass this, PolyBridge uses a central **Context Dictionary**. 
+
+When a language block starts, PolyBridge looks at the variables in its global dictionary, converts them to text (JSON), and dynamically generates code that injects those variables directly into the compiler of the next language.
+
+```mermaid
+flowchart TD
+    Py["Python Block"] -->|"x = 10"| Ctx[("Bridge Context (Python RAM)")]
+    Ctx -->|"Inject: 'int x = 10;'"| C["C Block"]
+    Ctx -->|"Inject: 'globalThis.x = 10;'"| JS["JS Block"]
 ```
 
-### **Step 2: Parsing (`core/parser.py`)**
-The parser identifies and extracts language blocks from the source code:
+---
 
-```
-Source Code Example:
-    global { x = 10 }
-    python { print(x) }
-    javascript { console.log(x) }
+### Pillar 3: Bidirectional `Stdin/Stdout` IPC (Live Calling)
+What if C++ wants to call a Python function dynamically, midway through executing? 
+Instead of JNI (Java Native Interface) overhead, we use standard operating system **Pipes** (stdin/stdout).
+
+When a language evaluates `call_bridge("func", ...)`, it prints a specific command string (`__POLY_CALL__`) to the console and halts, waiting for the bridge to respond.
+
+```mermaid
+sequenceDiagram
+    participant C as C++ Subprocess
+    participant Py as Python Bridge (Host)
     
-Parser Process:
-    ↓
-1. Looks for language name followed by opening brace "{"
-2. Collects all code until matching closing brace "}"
-3. Creates BlockNode objects for each block
-    ↓
-Output: ProgramNode containing:
-    [
-        BlockNode("global", "x = 10"),
-        BlockNode("python", "print(x)"),
-        BlockNode("javascript", "console.log(x)")
-    ]
+    C->>Py: stdout: __POLY_CALL__|add|[1, 2]
+    Note over Py: Reads stdout.<br/>Executes Python add(1, 2)
+    Py->>C: stdin: __POLY_RET__|int|3
+    Note over C: Standard 'cin' reads the value.<br/>Execution Resumes!
 ```
-
-**How it works:**
-- Reads source code line by line
-- Detects `language {` as block start
-- Tracks brace depth `{` and `}` to find block end
-- Cleans up indentation using `textwrap.dedent()`
-- Stores each block as a `BlockNode` with language and code
+This is managed by `bridge/pipe_runner.py`.
 
 ---
 
-### **Step 3: Interpretation (`core/interpreter.py`)**
-The interpreter processes each block sequentially and manages execution:
+### Pillar 4: Vice-Versa Routing (Subprocess Stubs)
+What if Java wants to call a JavaScript function?
+JavaScript can register functions to the Bridge as "Stubs" using `poly_export_function()`. The raw source code is saved. 
 
+When another language requests it, the `Dispatcher` spins up a micro-worker of that language just to execute that logic!
+
+```mermaid
+flowchart TD
+    Java["Java execution"] -->|"__POLY_CALL__|js_logic"| Hub{"Dispatcher"}
+    Hub -->|"Spawns one-shot worker"| JS["JS Background Stub"]
+    JS -->|"__POLY_RET__|Result"| Hub
+    Hub -->|"Piped deeply back"| Java
 ```
-For each BlockNode in the program:
-
-1. If language = "global":
-   ↓
-   process_global() function:
-   - Parses variable assignments like "x = 10"
-   - Stores variables in Context (shared memory)
-
-2. If language = "python" or "javascript" or "js" or "c" or "c++" or "cpp" or "java":
-   ↓
-   - Retrieves language runner from LANGUAGE_REGISTRY
-   - Passes context and code to the runner
-   - Executes with appropriate runtime
-   - Context is updated with new variables created
-```
-
-**Context Object (`core/context.py`):**
-- Acts as a **shared dictionary** across all language blocks
-- `set(key, value)` - Store a variable
-- `get(key)` - Retrieve a variable
-- `all()` - Get all variables
+Because these isolated stubs are generated dynamically, they can also make `__POLY_CALL__` requests, allowing for infinite recursive function jumping across all 5 languages simultaneously.
 
 ---
 
-### **Step 4: Language Runners (`languages/` folder)**
+### Pillar 5: Global Object Oriented Programming (OOP)
+PolyBridge supports crossing class boundaries. Because a C++ struct cannot exist inside the Java Virtual Machine, PolyBridge uses **Memory Handles**.
 
-Each language has its own runner that handles execution:
+1. Python exports an object. The `ObjectStore` saves it and gives it `Handle #1`.
+2. Automatically, C++ and Java receive dynamically generated proxy classes referencing `Handle #1`.
+3. When Java calls `myObj.increment()`, the proxy sends `__POLY_METHOD__|1|increment` to the Python Coordinator, which modifies the live memory.
 
-#### **Python Runner** (`languages/python_lang.py`):
-```python
-run(code, context):
-    1. Creates export() function to share variables
-    2. Copies all context.variables into local environment
-    3. Executes the Python code using exec()
-    4. Updates context with new variables created in code
-```
-
-**Example:**
-```
-Global: { x = 10 }
-    → Context stores: {x: 10}
-
-Python: { y = x + 5; export('result', y) }
-    → Injects: x = 10 into Python environment
-    → Executes: y = x + 5
-    → Updates Context: {x: 10, result: 5}
-```
-
-#### **JavaScript Runner** (`languages/js_lang.py`):
-```python
-run(code, context):
-    1. Converts context variables to JSON
-    2. Injects them as JavaScript: var x = 10;
-    3. Prepends variables to user code
-    4. Executes via Node.js: node -e "var x = 10; [code]"
-```
-
-**Example:**
-```
-Global: { x = 5 }
-
-JavaScript: { console.log(x) }
-    → Generates: var x = 10;
-                 console.log(x);
-    → Runs with Node.js
-    → Output: 10
-```
-
-#### **C Runner** (`languages/c_lang.py`):
-```python
-run(code):
-    1. Creates temporary .c file with user code
-    2. Compiles with gcc: gcc file.c -o file.exe
-    3. Executes: file.exe
-    4. Cleans up temporary files
-```
-
-**Note:** C does not receive context (no variable sharing to C)
-
-#### **C++ Runner** (`languages/cpp_lang.py`):
-```python
-run(code):
-    1. Creates temporary .cpp file with user code
-    2. Compiles with g++: g++ file.cpp -o file.exe
-    3. Executes: file.exe
-    4. Cleans up temporary files
-```
-
-**Note:** C++ does not receive context (no variable sharing to C++)
-
-#### **Java Runner** (`languages/java_lang.py`):
-```python
-run(code):
-    1. Creates a temporary Java source file
-    2. Detects the class name, or wraps plain statements in a Main class
-    3. Compiles with javac
-    4. Executes with java -cp
-```
-
-**Note:** Java does not receive context (no variable sharing to Java)
-
----
-
-## Project Structure
-
-```
-poly_runtime/
-│
-├── poly.py                 # Main entry point
-├── poly.bat               # Windows batch script to run poly
-├── README.md              # This file
-│
-├── core/                  # Core interpreter logic
-│   ├── ast.py            # Abstract Syntax Tree nodes
-│   ├── context.py        # Shared variable storage
-│   ├── executor.py       # (Legacy - see interpreter.py)
-│   ├── interpreter.py    # Main interpreter loop
-│   ├── lexer.py          # Tokenizer (simple line splitter)
-│   └── parser.py         # Parser (extracts language blocks)
-│
-└── languages/            # Language-specific runners
-    ├── __init__.py       # Language registry
-    ├── python_lang.py    # Python execution
-    ├── js_lang.py        # JavaScript/Node.js execution
-    ├── c_lang.py         # C compilation and execution
-    ├── cpp_lang.py       # C++ compilation and execution
-    └── java_lang.py      # Java compilation and execution
+```mermaid
+flowchart LR
+    P["Python Object"] -->|Registered| O[("Object Store")]
+    O -->|Assigns Handle: 1| C["C++ Proxy Instance"]
+    O -->|Assigns Handle: 1| J["Java Proxy Instance"]
+    C -->|"Calls element.increment()"| O
+    O -->|"Updates actual object"| P
 ```
 
 ---
 
-## Usage
+## 📖 Syntax & Usage Examples
 
-### Basic Syntax
-
-Create a `.poly` file with language blocks:
-
-```
+### 1. Variables and Global Scope
+```c
 global {
-    x = 10
-    message = "Hello"
-}
-
-python {
-    y = x + 5
-    print(f"Message: {message}, Y: {y}")
-    export('py_result', y)
+    shared_value = 100
 }
 
 javascript {
-    console.log(x);
-    console.log(message);
+    // Read and mutate
+    let x = get_global("shared_value") + 50;
+    poly_export("js_computed", x);
 }
 
 c {
-    #include <stdio.h>
-    int main() {
-        printf("Hello from C!\n");
-        return 0;
-    }
+    // Read the strictly typed mutated value
+    long long js_val = get_global_i("js_computed");
+    printf("Result: %lld\n", js_val);
+}
+```
+
+### 2. Universal Invocation
+```python
+python {
+    def python_core(val): return val * 2
+    export_function("python_core", python_core)
 }
 
 java {
-    System.out.println("Hello from Java!");
-}
-
-c++ {
-    #include <iostream>
-
-    int main() {
-        std::cout << "Hello from C++!" << std::endl;
-        return 0;
+    class Main {
+        public static void main(String[] args) {
+            // Java drives Python!
+            long result = (long)call_bridge("python_core", 100);
+            System.out.println("Result: " + result);
+        }
     }
 }
 ```
 
-### Running
+---
 
+## 📈 The Development Roadmap (How We Built This)
+
+To appreciate the scale, here is the exact chronological timeline of how the PolyBridge was engineered:
+
+### Phase 1: Sequential Execution
+**Goal:** Run disparate code blocks one after the other.
+* **How it worked:** The `core/parser.py` slices the file. `core/interpreter.py` passes the raw strings linearly to wrappers like `c_lang.py`, which execute shells (`gcc`, `node`). 
+* **Limitations:** Every block was deaf and blind to the others. 
+* **Key Files Involved:** `poly.py`, `core/parser.py`, `core/interpreter.py`
+
+### Phase 2: Unidirectional Data Sharing
+**Goal:** Pass integers, strings, and structs downstream.
+* **How it worked:** We created `core/context.py` to store variables in Python. When `c_lang.py` boots, it reads Context and concatenates `#define` and `int` literals at the very top of the user's C code before compiling it. We added `__POLY_EXPORT__` markers so blocks could pass data back.
+* **Key Files Involved:** `core/context.py`, `bridge/pipe_runner.py`
+
+### Phase 3: The Bidirectional Bridge Network
+**Goal:** Break the sequential walls to allow live APIs and function calls.
+* **How it worked:** `pipe_runner.py` was rebuilt into a bidirectional Stdin/Stdout pump. `poly_bridge.py` exposed live hooks into `Dispatcher.py`. We injected C/C++/Java proxy functions like `call_bridge()` which printed to the console and halted their own processes waiting for the host. 
+* **Key Files Involved:** `bridge/poly_bridge.py`, `bridge/dispatcher.py`
+
+### Phase 3 (Update): Remote Stubs & "Vice-Versa" Calling
+**Goal:** Allow C++ to call JavaScript.
+* **How it worked:** We built `stub_invoker.py`. If C++ requested a JavaScript function, Python spawned a background `Node.js` process exclusively to execute that logic dynamically, intercepting its output and filtering it back locally down to C++.
+* **Key Files Involved:** `bridge/registry.py`, `bridge/stub_invoker.py`
+
+### Phase 3E: Global OOP Schema Generation
+**Goal:** Maintain living multi-language Class memory states.
+* **How it worked:** Added `ObjectStore.py`. When Python defines a User Class, `cpp_lang.py` generates parallel C++ `structs` using String-interpolation templates, wiring every method request across the shell pipelines.
+* **Key Files Involved:** `bridge/object_store.py`, `languages/cpp_lang.py`, `languages/java_lang.py`
+
+---
+
+## 📂 Project Structure Directory
+
+```
+poly_runtime/
+├── poly.py                   # Main entry point CLI
+├── bridge/                   # Core Memory and Network Engine
+│   ├── poly_bridge.py        # Brain of the system: IPC Router
+│   ├── pipe_runner.py        # Bidirectional Stdin/Stdout Manager
+│   ├── stub_invoker.py       # Intercepts 'Vice-Versa' languages stubs
+│   ├── object_store.py       # Tracks instance memory across borders
+│   └── registry.py           # Function map
+│
+├── core/                     # Syntax Engine
+│   ├── parser.py             # Parses { } syntax blocks
+│   └── interpreter.py        # Central sequence coordinator
+│
+└── languages/                # Adapters & Compilers
+    ├── python_lang.py        # Extends Python context
+    ├── js_lang.py            # Node.js compiler
+    ├── c_lang.py             # GCC adapter
+    ├── cpp_lang.py           # G++ adapter 
+    └── java_lang.py          # JDK adapter
+```
+
+## ⚙️ Installation & Running
+
+Ensure you have the required compilers installed on your `PATH`:
+- **Python 3.10+** (Master Coordinator)
+- **Node.js** (JS execution)
+- **GCC / G++** (C and C++ Compilation)
+- **Java JDK** (`javac` and `java`)
+
+**To Run Example Suite:**
 ```bash
-python poly.py script.poly
+python poly.py example/19_universal_vice_versa.poly
 ```
-
-### Output Example
-
-```
-=== Running global ===
-
-=== Running python ===
-Message: Hello, Y: 15
-
-=== Running javascript ===
-10
-Hello
-
-=== Running c ===
-Hello from C!
-
-=== Running java ===
-Hello from Java!
-
-=== Running c++ ===
-Hello from C++!
-```
-
----
-
-## Variable Sharing Overview
-
-```
-.poly File
-    ↓
-Parser (breaks into blocks)
-    ↓
-Interpreter (processes each block)
-    ↓
-┌────────────┬──────────────┬──────────┐
-↓            ↓              ↓          ↓
-Global       Python Let me provide a simpler structure
-Runner       JS Runner     C Runner / C++ Runner / Java Runner
-    ↓            ↓              ↓          ↓
-    └────────────┴──────────────┴──────────┘
-             Context
-        (shared variables)
-```
-
-**How Variables Flow:**
-1. **Global block** sets initial variables in Context
-2. **Python block** reads from Context, can modify/add variables
-3. **JavaScript block** receives variables as JSON serialized vars
-4. **C**, **C++**, and **Java** blocks do not receive or share variables
-5. Variables can be **exported** from languages back to Context
-
----
-
-## Key Classes
-
-### `BlockNode` (`core/ast.py`)
-```python
-BlockNode(language, code)
-    - language: str (e.g., "python", "javascript", "js", "c", "c++", "cpp", "java")
-    - code: str (source code for that language)
-```
-
-### `ProgramNode` (`core/ast.py`)
-```python
-ProgramNode(blocks)
-    - blocks: list of BlockNode objects
-```
-
-### `Context` (`core/context.py`)
-```python
-Context()
-    - set(key, value): Store variable
-    - get(key): Retrieve variable
-    - all(): Get all variables as dict
-```
-
----
-
-## Dependencies
-
-- **Python 3.x** - For parsing and Python code execution
-- **Node.js** - For JavaScript code execution
-- **GCC** - For C code compilation
-- **G++** - For C++ code compilation
-- **JDK / `javac` + `java`** - For Java compilation and execution
-
-Install Node.js, GCC/G++, and a JDK on your system for full functionality.
-
----
-
-## Notes
-
-- The **`global` block** is a special block for initializing shared variables
-- **Variable names** starting with `__` are treated as internal and not shared
-- **Python** can use `export(name, value)` to explicitly send variables back to Context
-- **JavaScript** receives all context variables as `var` declarations
-- **`js`** is supported as an alias for **`javascript`**
-- **C**, **C++**, and **Java** are compiled and executed independently; cannot access context variables
-- Blocks execute **sequentially** in the order they appear in the file
-

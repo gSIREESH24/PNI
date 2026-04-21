@@ -17,7 +17,7 @@ class Dispatcher:
     def __init__(self, registry: Registry):
         self._registry = registry
 
-    def call(self, name: str, *args):
+    def call(self, name: str, *args, context=None):
         entry = self._registry.get_function(name)
 
         if entry is None:
@@ -37,6 +37,7 @@ class Dispatcher:
                 source      = entry.stub_source,
                 return_type = entry.return_type or "int",
                 args        = list(args),
+                context     = context,
             )
 
         raise RuntimeError(
