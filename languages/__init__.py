@@ -1,15 +1,18 @@
 from .python_lang import run as python_run
-from .js_lang     import run as js_run
-from .c_lang      import run as c_run
-from .cpp_lang    import run as cpp_run
-from .java_lang   import run as java_run
+from .runner      import run as _compiled_run
+
+def _make_run(lang):
+    """Return a run(code, context) function bound to a specific language key."""
+    def _run(code, context):
+        return _compiled_run(lang, code, context)
+    return _run
 
 LANGUAGE_REGISTRY = {
     "python":     python_run,
-    "javascript": js_run,
-    "js":         js_run,
-    "c":          c_run,
-    "c++":        cpp_run,
-    "cpp":        cpp_run,
-    "java":       java_run,
+    "javascript": _make_run("javascript"),
+    "js":         _make_run("javascript"),
+    "c":          _make_run("c"),
+    "c++":        _make_run("cpp"),
+    "cpp":        _make_run("cpp"),
+    "java":       _make_run("java"),
 }

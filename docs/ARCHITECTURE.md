@@ -1,10 +1,6 @@
-# 🌐 Polyglot Runtime Framework (The Universal Bridge)
+# 🏛️ Polyglot Framework Architecture Reference
 
-Welcome to the **Polyglot Runtime Framework**! 
-
-Have you ever wished you could write a script where one block is **Python**, the next is **JavaScript**, the next is **C++**, and they all magically share the same variables, call each other's functions, and even modify the same Objects in real-time? That is exactly what this framework does.
-
-This is a complete, beginner-friendly guide to how this "Universal Bridge" works—from the broad concepts down to the actual system architecture. 
+Welcome to the **Polyglot Runtime Framework**! This document serves as the complete, beginner-friendly guide to how this "Universal Bridge" works—from the broad concepts down to the actual system architecture, heavily visualized with diagrams.
 
 ---
 
@@ -49,9 +45,9 @@ c {
 
 ## 🧠 How It Works: The 5 Pillars of Architecture
 
-Under the hood, this does not rely on heavy compiled bindings. It relies on a **Template Engine**, a **Central Bridge Router**, and highly optimized **Standard I/O Pipes**. Let's break down exactly how it works.
+Under the hood, this does not rely on heavy compiled bindings. It relies on a **Template Engine**, a **Central Bridge Router**, and highly optimized **Standard I/O Pipes**. Let's break down exactly how it works with visual diagrams.
 
-### Pillar 1: The Master Python Process
+### Pillar 1: The Master Python Process (The Bird's Eye View)
 When you run `python poly.py my_script.poly`, the Master Python process takes control. The `parser.py` slices the file along the `{...}` brackets. The `interpreter.py` passes these blocks one by one to the `Bridge`.
 
 ```mermaid
@@ -176,54 +172,4 @@ flowchart TD
 
     MethodPipe -->|"Intercepted by Bridge"| Store
     Store -->|"Triggers PyObj.increment()"| PyObj
-```
-
----
-
-## 📂 Codebase Directory 
-
-```
-Phase_2_PLF/
-├── poly.py                   # Main CLI entry point
-├── bridge/                   # Core Memory and Pipeline Engine
-│   ├── bridge.py             # Brain of the system: IPC Router
-│   ├── protocol.py           # Evaluates JSON stdio pipelines
-│   ├── stub_runner.py        # Wakes up functions registered as "Stubs"
-│   ├── object_store.py       # Tracks instance memory across borders
-│   └── function_registry.py  # Map of all shared functions/values
-│
-├── core/                     # Syntax Engine
-│   ├── parser.py             # Shreds { } syntax blocks
-│   └── interpreter.py        # Central sequence coordinator
-│
-└── languages/                # Template Engine Adapters
-    ├── runner.py             # The universal compiler/executor
-    ├── adapters.py           # Rules for compiling GCC, Node, Javac
-    ├── python_lang.py        # Python internal hooks
-    └── templates/            # Handcrafted native bridge skeletons
-        ├── c_bridge.h
-        ├── cpp_bridge.hpp
-        ├── js_bridge.js
-        └── java_bridge.java
-```
-
----
-
-## ⚙️ Installation & Running Examples
-
-Ensure you have the required native dependencies installed on your system `PATH`:
-- **Python 3.10+** (Master Coordinator)
-- **Node.js** (JS execution)
-- **GCC / G++** (C and C++ Compilation)
-- **Java JDK** (`javac` and `java`)
-
-Test your installation using the ultimate Vice-Versa example:
-```bash
-python poly.py example/19_universal_vice_versa.poly
-```
-
-**Run the Full Test Suite across all 20+ examples:**
-```bash
-# Windows PowerShell
-$errors = 0; foreach ($file in Get-ChildItem -Path "example" -Filter "*.poly") { python poly.py $file.FullName }
 ```
