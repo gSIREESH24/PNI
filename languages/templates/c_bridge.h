@@ -1,35 +1,21 @@
-/*
- * c_bridge.h — PLF bridge glue injected before every user C block.
- *
- * Available in user code:
- *   export_value(name, value)          — publish any scalar to the bridge
- *   call_bridge_i/f/b/s(name, args)   — call a Python-registered function
- *   call_method_i/f/b/s(handle, m, a) — invoke a method on a Python object
- *   export_bridge_function(n, src, rt) — register this C function back to Python
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 
-/* Forward declaration needed before the class-schema macros use it. */
 static void _poly_json_str(const char *s);
 
-/* ── Unbuffer stdout/stdin so the interactive pipe protocol works ── */
 __attribute__((constructor))
 static void _poly_unbuffer(void) {
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stdin,  NULL, _IONBF, 0);
 }
 
-/* ── Typed export printers ── */
 static void _poly_int   (const char *n, long long  v) { printf("__POLY_EXPORT__%s|int|%lld\n",     n, v); }
 static void _poly_double(const char *n, double     v) { printf("__POLY_EXPORT__%s|double|%.17g\n", n, v); }
 static void _poly_bool  (const char *n, int        v) { printf("__POLY_EXPORT__%s|bool|%s\n",     n, v ? "true" : "false"); }
 static void _poly_str   (const char *n, const char *v){ printf("__POLY_EXPORT__%s|string|%s\n",   n, v ? v : ""); }
 
-/* _Generic dispatch — user just writes:  export_value("x", myvar); */
 #define export_value(name, value) _Generic((value),     \
     _Bool:        _poly_bool,                            \
     char *:       _poly_str,                             \
@@ -39,7 +25,6 @@ static void _poly_str   (const char *n, const char *v){ printf("__POLY_EXPORT__%
     default:      _poly_int                              \
 )(name, value)
 
-/* ── Bridge call helpers ── */
 static char __poly_ret_buf[65536];
 
 static void _poly_call_raw(const char *name, const char *args_json) {
@@ -49,7 +34,6 @@ static void _poly_call_raw(const char *name, const char *args_json) {
         __poly_ret_buf[0] = '\0';
 }
 
-/* Return parsers */
 static long long _parse_ret_i(void) {
     char *p;
     if ((p = strstr(__poly_ret_buf, "|int|")))   return atoll(p + 5);
@@ -84,7 +68,6 @@ static double      call_bridge_f(const char *n, const char *a) { _poly_call_raw(
 static int         call_bridge_b(const char *n, const char *a) { _poly_call_raw(n, a); return _parse_ret_b(); }
 static const char *call_bridge_s(const char *n, const char *a) { _poly_call_raw(n, a); return _parse_ret_s(); }
 
-/* ── Method proxy (Phase 3E) ── */
 static void _poly_method_raw(long long handle, const char *method, const char *args_json) {
     printf("__POLY_METHOD__|%lld|%s|%s\n", handle, method, args_json);
     fflush(stdout);
@@ -97,7 +80,6 @@ static double      call_method_f(long long h, const char *m, const char *a) { _p
 static int         call_method_b(long long h, const char *m, const char *a) { _poly_method_raw(h, m, a); return _parse_ret_b(); }
 static const char *call_method_s(long long h, const char *m, const char *a) { _poly_method_raw(h, m, a); return _parse_ret_s(); }
 
-/* ── JSON string printer (used by class-schema export macros) ── */
 static void _poly_json_str(const char *s) {
     putchar('"');
     for (; *s; ++s) {
@@ -111,7 +93,6 @@ static void _poly_json_str(const char *s) {
     putchar('"');
 }
 
-/* ── Function stub registration ── */
 #define export_bridge_function(name, source, return_type)  \
     do {                                                    \
         printf("__POLY_REGISTER__|%s|c|%s|", name, return_type); \

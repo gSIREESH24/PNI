@@ -1,39 +1,26 @@
-# Example 02 — Python Exporting Values
-#
-# Demonstrates:
-#   - export(name, value) for plain values
-#   - All export types: int, float, bool, string
-#   - Exported values become visible to ALL later blocks
-
 global {
     seed = 7
 }
-
 python {
-    # Compute various values and export them all
     py_int    = seed * 10
     py_float  = seed * 1.5
     py_bool   = seed > 5
     py_string = f"Python computed from seed={seed}"
-
     export("py_int",    py_int)
     export("py_float",  py_float)
     export("py_bool",   py_bool)
     export("py_string", py_string)
-
     print(f"[Python] Exported int    = {py_int}")
     print(f"[Python] Exported float  = {py_float}")
     print(f"[Python] Exported bool   = {py_bool}")
     print(f"[Python] Exported string = {py_string}")
 }
-
 javascript {
     console.log("[JS] py_int    = " + get_global("py_int"));
     console.log("[JS] py_float  = " + get_global("py_float"));
     console.log("[JS] py_bool   = " + get_global("py_bool"));
     console.log("[JS] py_string = " + get_global("py_string"));
 }
-
 c {
     int main() {
         printf("[C] py_int    = %lld\n",  py_int);
@@ -43,7 +30,6 @@ c {
         return 0;
     }
 }
-
 java {
     class Main {
         public static void main(String[] args) {

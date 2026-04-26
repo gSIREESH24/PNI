@@ -1,54 +1,35 @@
-# Example 05 — Python to C
-#
-# Demonstrates:
-#   - Python exports int, float, and string values
-#   - C reads them as plain static const variables
-#   - C uses export_value() macro to send results back
-#   - Python reads the C results in a second block
-
 global {
     threshold = 50
 }
-
 python {
     input_val = 42
     rate      = 0.075
     label     = "C-processed"
-
     export("input_val", input_val)
     export("rate",      rate)
     export("label",     label)
-
     print(f"[Python] Sending to C: input_val={input_val}, rate={rate}, label={label}")
 }
-
 c {
     int main() {
-        // Read Python exports + global threshold
         printf("[C] input_val = %lld\n",  input_val);
         printf("[C] rate      = %.4f\n",  rate);
         printf("[C] label     = %s\n",    label);
         printf("[C] threshold = %lld\n",  threshold);
-
-        // Compute and export back
         long long adjusted = (long long)(input_val * (1.0 + rate));
         int       passed   = adjusted >= threshold;
-
         export_value("c_adjusted", adjusted);
         export_value("c_passed",   (_Bool)passed);
         export_value("c_message",  passed ? "PASS" : "FAIL");
-
         printf("[C] adjusted  = %lld\n", adjusted);
         printf("[C] passed    = %s\n",   passed ? "true" : "false");
         return 0;
     }
 }
-
 python {
     adjusted = get_global("c_adjusted")
     passed   = get_global("c_passed")
     message  = get_global("c_message")
-
     print(f"[Python Block 2] c_adjusted = {adjusted}")
     print(f"[Python Block 2] c_passed   = {passed}")
     print(f"[Python Block 2] c_message  = {message}")

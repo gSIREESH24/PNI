@@ -1,65 +1,46 @@
-# Example 07 — Python to Java
-#
-# Demonstrates:
-#   - Python exports values to the bridge
-#   - Java reads them as static final fields AND via get_global()
-#   - Java exports results using overloaded export_value()
-#   - Python reads the final results
-
 global {
     item_count = 5
     unit_price = 20
 }
-
 python {
-    discount    = 0.10    # 10% discount
-    tax_rate    = 0.18    # 18% GST
+    discount    = 0.10
+    tax_rate    = 0.18
     customer    = "Sireesh"
-
     export("discount",  discount)
     export("tax_rate",  tax_rate)
     export("customer",  customer)
-
     subtotal = item_count * unit_price
     print(f"[Python] {customer}: {item_count} items @ {unit_price} = subtotal {subtotal}")
     print(f"[Python] Discount: {discount*100}%, Tax: {tax_rate*100}%")
 }
-
 java {
     class Main {
         public static void main(String[] args) {
-            // Static finals available directly
             System.out.println("[Java] customer    = " + customer);
             System.out.println("[Java] item_count  = " + item_count);
             System.out.println("[Java] unit_price  = " + unit_price);
             System.out.println("[Java] discount    = " + discount);
             System.out.println("[Java] tax_rate    = " + tax_rate);
-
-            // Compute invoice
             double subtotal       = item_count * unit_price;
             double discount_amt   = subtotal * discount;
             double after_discount = subtotal - discount_amt;
             double tax_amt        = after_discount * tax_rate;
             double total          = after_discount + tax_amt;
-
             System.out.printf("[Java] subtotal       = %.2f%n", subtotal);
             System.out.printf("[Java] discount (%.0f%%) = %.2f%n", discount * 100, discount_amt);
             System.out.printf("[Java] after discount = %.2f%n", after_discount);
             System.out.printf("[Java] tax (%.0f%%)      = %.2f%n", tax_rate * 100, tax_amt);
             System.out.printf("[Java] total          = %.2f%n", total);
-
             export_value("java_subtotal", subtotal);
             export_value("java_total",    total);
             export_value("java_invoice",  "Invoice for " + customer + ": " + String.format("%.2f", total));
         }
     }
 }
-
 python {
     subtotal = get_global("java_subtotal")
     total    = get_global("java_total")
     invoice  = get_global("java_invoice")
-
     print(f"[Python Block 2] subtotal = {subtotal}")
     print(f"[Python Block 2] total    = {total:.2f}")
     print(f"[Python Block 2] invoice  = {invoice}")

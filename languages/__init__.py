@@ -2,7 +2,6 @@ from .python_lang import run as python_run
 from .runner      import run as _compiled_run
 
 def _make_run(lang):
-    """Return a run(code, context) function bound to a specific language key."""
     def _run(code, context):
         return _compiled_run(lang, code, context)
     return _run

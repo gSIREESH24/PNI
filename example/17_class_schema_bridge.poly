@@ -1,68 +1,44 @@
-# Example 17 — Schema-Based Classes
-# 
-# Demonstrates Phase 3 Milestone 4A:
-# Python registers a struct/class schema and the bridge automatically generates
-# native definitions for JS, C, C++, and Java.
-# You can then construct these objects natively and export them!
-
 python {
-    # 1. Define the class inside Python
     class Point:
         def __init__(self, x, y, label="unlabeled"):
             self.x = x
             self.y = y
             self.label = label
-
-    # 2. Register its schema with the bridge
-    # The bridge will generate a 'Point' class/struct in the other languages.
     export_class("Point", Point, fields={
         "x": "float", 
         "y": "float",
         "label": "str"
     })
-    
     print("[Python] Registered 'Point' schema (x: float, y: float, label: str)")
 }
-
 js {
-    // 3. JS uses the auto-generated Point class
     let p_js = new Point(10.5, 20.25, "JS Point");
     poly_export('p_js', p_js);
     console.log("[JS] Created Point object:", p_js);
 }
-
 c {
-    // 4. C uses the auto-generated Point struct
-    // The struct is available as 'Point' and we can use the 'export_value_Point' macro.
     int main() {
         Point p_c;
         p_c.x = 100.0;
         p_c.y = 200.0;
         p_c.label = "C Point";
-        
         export_value_Point("p_c", p_c);
         printf("[C] Exported Point: x=%.1f y=%.1f label='%s'\n", p_c.x, p_c.y, p_c.label);
         return 0;
     }
 }
-
 cpp {
-    // 5. C++ uses the auto-generated Point struct
-    // C++ can just use the standard 'export_value' function (we overloaded it).
     int main() {
         Point p_cpp;
         p_cpp.x = 3.14159;
         p_cpp.y = 2.71828;
         p_cpp.label = "C++ Point";
-        
         export_value("p_cpp", p_cpp);
         std::cout << "[C++] Exported Point: " << p_cpp.label << std::endl;
         return 0;
     }
 }
-
 java {
-    // 6. Java uses the auto-generated Point static nested class
     class Main {
         public static void main(String[] args) {
             Point p_java = new Point(-1.0, -2.0, "Java Point");
@@ -71,22 +47,15 @@ java {
         }
     }
 }
-
 python {
-    # 7. Print all the objects collected from the languages!
-    # They should show up as standard Python dictionaries containing the attributes.
     print()
     print("--- Bridge Captured Objects ---")
-    
-    # We can fetch the raw dict, or we can manually unpack it into a Python Point instance.
     def hydrate(data):
         return Point(data['x'], data['y'], data['label'])
-
     def show(name):
         d = get_global(name)
         obj = hydrate(d)
         print(f"[{name}] -> Point(x={obj.x}, y={obj.y}, label=\"{obj.label}\")")
-        
     show('p_js')
     show('p_c')
     show('p_cpp')

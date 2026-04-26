@@ -1,83 +1,52 @@
-# Example 18 — Object Method Proxies
-# 
-# Demonstrates Phase 3 Milestone 4B:
-# Subprocess languages (JS, C, C++, Java) can invoke methods on live Python objects
-# using method proxies / handles!
-
 python {
-    # 1. We define a live Python object with some internal state and methods!
     class Counter:
         def __init__(self, initial):
             self.value = initial
-
         def increment(self, amount):
             self.value += amount
             return self.value
-
         def get_value(self):
             return self.value
-
-    # Create an instance
     my_counter = Counter(10)
-    
-    # Store it in the PolyBridge ObjectStore to get a handle, and export it!
-    # The dictionary {"__handle__": XYZ} is picked up by JS and Java automatically!
     handle_id = store_object(my_counter)
     export("bridge_counter", {"__handle__": handle_id})
     export("bridge_counter_handle", handle_id)
     print(f"[Python] Exported Counter with handle: {handle_id}, initial = {my_counter.value}")
 }
-
 js {
-    // 2. JS naturally receives an object from `get_global`.
-    // The JS adapter automatically wraps it in a Proxy, allowing transparent method calls!
     let counter = get_global("bridge_counter");
-    
     console.log("[JS] Calling counter.increment(5)");
     let res = counter.increment(5);
     console.log("[JS] Result: " + res);
 }
-
 c {
-    // 3. C uses call_method_X helpers and passes the handle ID manually.
     int main() {
-        // We know the handle ID from the previous runs or a global variable.
-        // We injected bridge_counter_handle as a global constant for C and C++!
         long long hnd = bridge_counter_handle;
-        
         printf("[C] Calling counter.increment(10) on handle %lld\n", hnd);
         long long res = call_method_i(hnd, "increment", "[10]");
         printf("[C] Result: %lld\n", res);
         return 0;
     }
 }
-
 cpp {
-    // 4. C++ also uses call_method_X helpers
     int main() {
         long long hnd = bridge_counter_handle;
-        
         std::cout << "[C++] Calling counter.increment(10) on handle " << hnd << std::endl;
         long long res = call_method_i(hnd, "increment", "[10]");
         std::cout << "[C++] Result: " << res << std::endl;
         return 0;
     }
 }
-
 java {
-    // 5. Java accesses it through the __globals map. We exported the int handle too.
     class Main {
         public static void main(String[] args) {
             long hnd = (long) get_global("bridge_counter_handle");
-            
             System.out.println("[Java] Calling counter.increment(10) on handle " + hnd);
             Object res = call_method(hnd, "increment", 10);
             System.out.println("[Java] Result: " + res);
         }
     }
 }
-
 python {
-    # We injected the JS block, then C, then C++, then Java!
     print(f"[Python] Final counter value is: {my_counter.get_value()}")
 }

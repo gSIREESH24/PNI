@@ -1,58 +1,38 @@
-# Example 10 — Math Computation Chain Across All Languages
-#
-# Demonstrates:
-#   - A number computed and transformed by each language in sequence
-#   - Each language applies a different mathematical operation
-#   - The chain: global -> python -> js -> c -> c++ -> java
-#
-# Math chain:
-#   n = 2
-#   Python : n^3       = 8
-#   JS     : n * 12.5  = 100.0
-#   C      : floor(n)  = 100   (int cast)
-#   C++    : n * n     = 10000
-#   Java   : sqrt(n)   = 100.0
-
 global {
     n = 2
 }
-
 python {
     import math
-    py_cubed = n ** 3      # 2^3 = 8
+    py_cubed = n ** 3
     export("py_cubed", py_cubed)
     print(f"[Python] {n}^3 = {py_cubed}")
 }
-
 javascript {
     const py_cubed = get_global("py_cubed");
-    const js_scaled = py_cubed * 12.5;   // 8 * 12.5 = 100
+    const js_scaled = py_cubed * 12.5;
     poly_export("js_scaled", js_scaled);
     console.log("[JS] " + py_cubed + " * 12.5 = " + js_scaled);
 }
-
 c {
     int main() {
-        long long c_int = (long long)js_scaled;  // 100.0 -> 100
+        long long c_int = (long long)js_scaled;
         printf("[C] floor(%.1f) = %lld\n", js_scaled, c_int);
         export_value("c_int", c_int);
         return 0;
     }
 }
-
 cpp {
     int main() {
-        long long cpp_squared = c_int * c_int;   // 100 * 100 = 10000
+        long long cpp_squared = c_int * c_int;
         std::cout << "[C++] " << c_int << " * " << c_int << " = " << cpp_squared << std::endl;
         export_value("cpp_squared", cpp_squared);
         return 0;
     }
 }
-
 java {
     class Main {
         public static void main(String[] args) {
-            double java_sqrt = Math.sqrt(cpp_squared);   // sqrt(10000) = 100.0
+            double java_sqrt = Math.sqrt(cpp_squared);
             System.out.printf("[Java] sqrt(%d) = %.1f%n", cpp_squared, java_sqrt);
             export_value("java_sqrt", java_sqrt);
             export_value("chain_summary",
@@ -60,7 +40,6 @@ java {
         }
     }
 }
-
 python {
     result  = get_global("java_sqrt")
     summary = get_global("chain_summary")

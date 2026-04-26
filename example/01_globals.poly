@@ -1,35 +1,22 @@
-# Example 01 — Shared Global Variables
-#
-# Demonstrates:
-#   - Defining int, float, bool, and string globals in a global block
-#   - Every language reading those globals automatically
-#   - No explicit get_global() needed for named variables in C/C++/Java
-#   - Python can use them as plain variables OR via get_global()
-
 global {
     app_name    = "PolyBridge"
     version     = 2
     pi          = 3.14159
     debug_mode  = True
 }
-
 python {
     print(f"[Python] app_name   = {app_name}")
     print(f"[Python] version    = {version}")
     print(f"[Python] pi         = {pi}")
     print(f"[Python] debug_mode = {debug_mode}")
-
-    # get_global() works too
     print(f"[Python] via get_global: {get_global('app_name')}")
 }
-
 javascript {
     console.log("[JS] app_name   = " + get_global("app_name"));
     console.log("[JS] version    = " + get_global("version"));
     console.log("[JS] pi         = " + get_global("pi"));
     console.log("[JS] debug_mode = " + get_global("debug_mode"));
 }
-
 c {
     int main() {
         printf("[C] app_name   = %s\n",   app_name);
@@ -39,7 +26,6 @@ c {
         return 0;
     }
 }
-
 cpp {
     int main() {
         std::cout << "[C++] app_name   = " << app_name   << std::endl;
@@ -49,7 +35,6 @@ cpp {
         return 0;
     }
 }
-
 java {
     class Main {
         public static void main(String[] args) {

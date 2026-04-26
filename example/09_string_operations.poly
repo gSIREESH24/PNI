@@ -1,29 +1,18 @@
-# Example 09 — String Operations Across All Languages
-#
-# Demonstrates:
-#   - A string defined globally and transformed by each language
-#   - Each language appends its tag and exports the new string
-#   - Strings flow in sequence: Python -> JS -> C -> C++ -> Java
-
 global {
     original = "Hello"
 }
-
 python {
     py_str = original + ", World"
     export("py_str", py_str)
     print(f"[Python] '{original}' -> '{py_str}'")
 }
-
 javascript {
     const js_str = get_global("py_str") + "!";
     poly_export("js_str", js_str);
     console.log("[JS] '" + get_global("py_str") + "' -> '" + js_str + "'");
 }
-
 c {
     int main() {
-        // Concat in C using a buffer
         char combined[256];
         snprintf(combined, sizeof(combined), "%s [from-C]", js_str);
         printf("[C] '%s' -> '%s'\n", js_str, combined);
@@ -31,7 +20,6 @@ c {
         return 0;
     }
 }
-
 cpp {
     int main() {
         std::string cpp_str = std::string(c_str) + " [from-C++]";
@@ -40,7 +28,6 @@ cpp {
         return 0;
     }
 }
-
 java {
     class Main {
         public static void main(String[] args) {
@@ -51,7 +38,6 @@ java {
         }
     }
 }
-
 python {
     final_str = get_global("java_str")
     length    = get_global("str_length")

@@ -1,24 +1,6 @@
-/*
- * java_bridge.java — PLF bridge members injected into every user Java block.
- *
- * This file is NOT compiled directly. The runner reads it and injects its
- * contents at the top of the `Main` class body before compilation.
- *
- * Available in user code (all methods are static on Main):
- *   export_value(String name, <type> value)    — publish scalar to bridge
- *   get_global(String name)                    — read any bridge-shared value
- *   call_bridge(String name, Object... args)   — call a Python-registered fn
- *   call_method(long handle, String m, ...)    — invoke method on Python object
- *   export_bridge_function(name, src, retType) — register Java fn back to Python
- *
- * Shared globals and class schemas are injected by adapters.py ABOVE this block.
- */
-
-    /* ── PolyBridge stdin reader ── */
     private static final java.io.BufferedReader __bridge_stdin =
         new java.io.BufferedReader(new java.io.InputStreamReader(System.in));
 
-    /* ── Read and decode a __POLY_RET__ response ── */
     private static Object _parse_ret(String line) {
         if (line == null || !line.startsWith("__POLY_RET__|")) return null;
         String rest = line.substring("__POLY_RET__|".length());
@@ -38,7 +20,6 @@
         }
     }
 
-    /* ── Format args as a JSON array for __POLY_CALL__ ── */
     private static String _format_args(Object... args) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < args.length; i++) {
@@ -58,7 +39,6 @@
         return sb.toString();
     }
 
-    /* ── export_value overloads ── */
     public static void export_value(String name, int value) {
         System.out.println("__POLY_EXPORT__" + name + "|int|" + value);
         System.out.flush();
@@ -88,7 +68,6 @@
         export_value(name, value == null ? "null" : String.valueOf(value));
     }
 
-    /* ── call_bridge ── */
     public static Object call_bridge(String name, Object... args) {
         System.out.println("__POLY_CALL__|" + name + "|" + _format_args(args));
         System.out.flush();
@@ -96,7 +75,6 @@
         catch (Exception e) { return null; }
     }
 
-    /* ── call_method (Phase 3E) ── */
     public static Object call_method(long handle, String method, Object... args) {
         System.out.println("__POLY_METHOD__|" + handle + "|" + method + "|" + _format_args(args));
         System.out.flush();
@@ -104,7 +82,6 @@
         catch (Exception e) { return null; }
     }
 
-    /* ── export_bridge_function ── */
     public static void export_bridge_function(String name, String source, String returnType) {
         String safe = source
             .replace("\\", "\\\\")

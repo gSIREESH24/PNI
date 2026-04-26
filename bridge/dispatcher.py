@@ -1,20 +1,8 @@
-"""
-dispatcher.py — Routes bridge function calls to their implementations.
-
-Two execution paths:
-  1. Python-owned function  → called directly via entry.func(*args).
-  2. Subprocess stub        → re-launched through stub_runner.invoke().
-"""
-
 from .function_registry import FunctionRegistry
 from . import stub_runner
 
 
 class Dispatcher:
-    """
-    Given a function name and arguments, finds the right implementation
-    and invokes it — whether that's a Python callable or a native stub.
-    """
 
     def __init__(self, registry: FunctionRegistry):
         self._registry = registry
@@ -24,11 +12,9 @@ class Dispatcher:
         if entry is None:
             raise NameError(f"[Bridge] Function '{name}' is not registered.")
 
-        # Python-owned: call directly.
         if entry.func is not None:
             return entry.func(*args)
 
-        # Subprocess stub: re-invoke through stub_runner.
         if entry.stub_source is not None:
             return stub_runner.invoke(
                 fn_name     = entry.name,

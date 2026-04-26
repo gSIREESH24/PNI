@@ -1,18 +1,8 @@
-# Example 12 — Boolean Flags Set and Read Across Languages
-#
-# Demonstrates:
-#   - Boolean values exported from Python
-#   - Each language reads and interprets them
-#   - Each language exports its own boolean decision
-#   - Conditional logic driven by a shared flag across languages
-
 global {
     is_production = False
     max_retries   = 3
 }
-
 python {
-    # Python decides whether to proceed based on the flag
     should_run = (not is_production) or (max_retries > 0)
     export("should_run", should_run)
     export("py_ready",   True)
@@ -20,19 +10,15 @@ python {
     print(f"[Python] should_run    = {should_run}")
     print(f"[Python] py_ready      = True")
 }
-
 javascript {
     const prod    = get_global("is_production");
     const run     = get_global("should_run");
     const js_safe = !prod && run;
-
     console.log("[JS] is_production = " + prod);
     console.log("[JS] should_run    = " + run);
     console.log("[JS] js_safe       = " + js_safe);
-
     poly_export("js_safe", js_safe);
 }
-
 c {
     int main() {
         int c_go = (!is_production) && should_run && js_safe;
@@ -44,7 +30,6 @@ c {
         return 0;
     }
 }
-
 cpp {
     int main() {
         bool cpp_approved = c_go && (!is_production);
@@ -54,7 +39,6 @@ cpp {
         return 0;
     }
 }
-
 java {
     class Main {
         public static void main(String[] args) {
@@ -66,7 +50,6 @@ java {
         }
     }
 }
-
 python {
     all_clear  = get_global("all_clear")
     status_msg = get_global("status_msg")

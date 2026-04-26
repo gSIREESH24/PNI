@@ -25,17 +25,14 @@ global {
 }
 
 javascript {
-    // 1. JS reads the globally injected variable automatically
     let x = get_global("shared_value") + 50;
     
-    // 2. JS registers a function that other languages can now use
     poly_export_function("js_multiplier", function(val) {
         return val * x;
     }, "int");
 }
 
 c {
-    // 3. C natively calls the JavaScript function over the bridge!
     long long result = call_bridge("js_multiplier", 10);
     printf("C received from JS: %lld\n", result);
 }
@@ -88,7 +85,6 @@ flowchart LR
     
     Compiler -->|"gcc compiles"| Bin["OS Temp Dir App.exe"]
 ```
-*Note: This all happens in your OS Temp folder (`C:\Users\...\AppData\Local\Temp\`). No `App.exe` files ever litter your project workspace!*
 
 ---
 
@@ -131,16 +127,12 @@ sequenceDiagram
     participant C as C Stub Subprocess
 
     JS->>Py: __POLY_CALL__|c_multiplier
-    Note over JS: JS pauses and waits...
     
     Py->>C: Spawns new background C worker
-    Note over Py: Injects variables & tells C to calculate
     
     C->>Py: __POLY_RET__|int|50
-    Note over C: C worker finishes and dies
     
     Py->>JS: __POLY_RET__|int|50
-    Note over JS: JS receives 50 and resumes!
 ```
 
 ---

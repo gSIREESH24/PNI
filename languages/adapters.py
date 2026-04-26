@@ -1,22 +1,3 @@
-"""
-adapters.py — Per-language configuration for the PLF template engine.
-
-Each entry in ADAPTERS describes one compiled/subprocess language.
-The generic runner (runner.py) reads this config; it never contains
-any native code itself.
-
-Fields per language
-───────────────────
-  template      : path to the native bridge-glue file (relative to this dir)
-  suffix        : source file extension, e.g. ".c"
-  compile       : callable(src_path, out_path) -> [cmd, ...] or None for interp.
-  run_cmd       : callable(out_path, build_dir) -> [cmd, ...]
-  inject_globals: callable(context) -> str  — native declarations for bridge globals
-  inject_classes: callable(context) -> str  — native declarations for class schemas
-  parse_export  : callable(line: str) -> dict | None
-  wrap_source   : callable(code, bridge_members, context) -> str  (Java only)
-"""
-
 import json
 import os
 import re
@@ -26,11 +7,7 @@ _HERE = os.path.dirname(__file__)
 
 EXPORT_PREFIX = "__POLY_EXPORT__"
 
-
-# ── Shared export-line parser (C / C++ / Java all use the same format) ─────────
-
 def _parse_export_standard(line: str):
-    """Parse  __POLY_EXPORT__<name>|<type>|<raw>  — used by C, C++, Java."""
     if not line.startswith(EXPORT_PREFIX):
         return None
     payload = line[len(EXPORT_PREFIX):]
@@ -55,8 +32,6 @@ def _parse_export_standard(line: str):
     return {name: raw}
 
 
-# ── JS export parser (uses JSON wrapping) ───────────────────────────────────────
-
 _JS_EXPORT_MARKER = "__POLY_EXPORT__"
 
 def _parse_export_js(line: str):
@@ -72,10 +47,7 @@ def _parse_export_js(line: str):
     return None
 
 
-# ── Global-injection helpers ────────────────────────────────────────────────────
-
 def _c_literal(value):
-    """Return (literal_str, c_type_str) or None."""
     if isinstance(value, bool): return ("1" if value else "0", "int")
     if value is None:           return ("0", "int")
     if isinstance(value, int):  return (str(value), "long long")
@@ -108,7 +80,6 @@ def _inject_c_classes(context) -> str:
     for cname, cfields in context.bridge.registry.class_schemas.items():
         fields_c = " ".join(f"{C_TYPE.get(t,'long long')} {f};" for f, t in cfields.items())
         parts.append(f"typedef struct {{ {fields_c} }} {cname};")
-        # Build per-struct export_value_<Name> macro
         macro = [f"#define export_value_{cname}(name, obj) do {{ \\",
                  f'    printf("__POLY_EXPORT__%s|json|{{ ", name); \\']
         for i, (f, t) in enumerate(cfields.items()):
@@ -130,14 +101,13 @@ def _inject_c_classes(context) -> str:
 
 
 def _inject_cpp_globals(context) -> str:
-    """Same literal logic, but C++ uses 'char*' not 'char *' (cosmetic)."""
     if context is None:
         return ""
     lines = []
     for key, value in context.all().items():
         if key.startswith("__") or callable(value):
             continue
-        result = _c_literal(value)   # C and C++ share the same literals
+        result = _c_literal(value)
         if result is None:
             continue
         literal, ctype = result
@@ -168,7 +138,7 @@ def _inject_cpp_classes(context) -> str:
         func.append('    std::cout << " }\\n";')
         func.append('    std::cout.flush();')
         func.append("}")
-        func.append("} // namespace polybridge")
+        func.append("}")
         parts.append("\n".join(func))
     return "\n".join(parts)
 
@@ -184,7 +154,6 @@ def _inject_js_globals(context) -> str:
             lines.append(f"globalThis[{json.dumps(key)}] = {json.dumps(value)};")
         except (TypeError, ValueError):
             pass
-    # Inject class schemas as JS classes
     for cname, cfields in context.bridge.registry.class_schemas.items():
         args    = ", ".join(cfields.keys())
         assigns = "\n".join(f"        this.{f} = {f};" for f in cfields.keys())
@@ -196,7 +165,6 @@ def _inject_js_globals(context) -> str:
 
 
 def _inject_java_members(context) -> str:
-    """Build the Java static-fields block injected above the template."""
     if context is None:
         return ""
 
@@ -234,7 +202,6 @@ def _inject_java_members(context) -> str:
             lines.append(f"            this.{f} = {f};")
         lines.append("        }")
         lines.append("    }")
-        # export_value overload for the class
         lines.append(f"    public static void export_value(String name, {cname} obj) {{")
         lines.append( "        StringBuilder sb = new StringBuilder();")
         lines.append( '        sb.append("{ ");')
@@ -254,7 +221,7 @@ def _inject_java_members(context) -> str:
         lines.append( "    }")
         class_decls.append("\n".join(lines))
 
-    puts_block = "\n".join(map_puts) if map_puts else "        // no globals"
+    puts_block = "\n".join(map_puts) if map_puts else "        "
     return (
         "\n".join(class_decls) + "\n" +
         "\n".join(field_lines) + "\n" +
@@ -265,7 +232,6 @@ def _inject_java_members(context) -> str:
 
 
 def _wrap_java(code: str, bridge_members: str, _context) -> str:
-    """Produce complete Main.java source, injecting bridge members into the class."""
     stripped = textwrap.dedent(code).strip()
     m = re.search(r"(class\s+Main\s*\{)", stripped)
     if m:
@@ -283,24 +249,16 @@ def _wrap_java(code: str, bridge_members: str, _context) -> str:
 
 
 def _normalize_js_exports(code: str) -> str:
-    """Rewrite bare  export(...)  to  poly_export(...)  to avoid ES-module clash."""
     return re.sub(r"(?<![.\w])export\s*\(", "poly_export(", code)
 
 
 def _strip_js_hash_comments(code: str) -> str:
-    return "\n".join(
-        "" if line.strip().startswith("#") else line
-        for line in code.splitlines()
-    )
+    return code
 
-
-# ── Template paths ──────────────────────────────────────────────────────────────
 
 def _tpl(filename: str) -> str:
     return os.path.join(_HERE, "templates", filename)
 
-
-# ── ADAPTERS dict ───────────────────────────────────────────────────────────────
 
 ADAPTERS = {
     "c": {
@@ -311,7 +269,7 @@ ADAPTERS = {
         "inject_globals": _inject_c_globals,
         "inject_classes": _inject_c_classes,
         "parse_export":   _parse_export_standard,
-        "wrap_source":    None,   # No special wrapper; globals+header+code concatenated
+        "wrap_source":    None,
         "preprocess":     None,
     },
     "cpp": {
@@ -328,13 +286,13 @@ ADAPTERS = {
     "javascript": {
         "template":       _tpl("js_bridge.js"),
         "suffix":         ".js",
-        "compile":        None,   # Interpreted — no compilation step
-        "run_cmd":        None,   # JS is passed as -e inline to node
+        "compile":        None,
+        "run_cmd":        None,
         "inject_globals": _inject_js_globals,
-        "inject_classes": None,   # Classes are part of inject_globals for JS
+        "inject_classes": None,
         "parse_export":   _parse_export_js,
         "wrap_source":    None,
-        "preprocess":     lambda code: _strip_js_hash_comments(_normalize_js_exports(code)),
+        "preprocess":     lambda code: _normalize_js_exports(code),
     },
     "java": {
         "template":       _tpl("java_bridge.java"),
@@ -342,7 +300,7 @@ ADAPTERS = {
         "compile":        lambda src, _out: ["javac", "-encoding", "UTF-8", src],
         "run_cmd":        lambda _out, bd: ["java", "-cp", bd, "Main"],
         "inject_globals": _inject_java_members,
-        "inject_classes": None,   # Classes are part of inject_globals for Java
+        "inject_classes": None,
         "parse_export":   _parse_export_standard,
         "wrap_source":    _wrap_java,
         "preprocess":     None,

@@ -1,34 +1,10 @@
-"""
-context.py — Thin runtime wrapper passed to every language adapter.
-
-Delegates all storage and dispatch to the shared Bridge instance.
-Language adapters never touch Bridge directly — they go through Context.
-"""
-
 from bridge import Bridge
 
 
 class Context:
-    """
-    Per-execution context given to each language block.
-
-    Wraps a shared Bridge so adapters have a clean, minimal API:
-
-      set / get / all         — shared scalar values
-      register_python_function— register a Python callable
-      register_class_schema   — register a class layout for native codegen
-      has_function / call     — function lookup and invocation
-      register_function_stub  — store a native-language stub
-      store_object            — put a Python object in the handle store
-      load_object             — retrieve by handle
-      delete_object           — release a handle
-      call_method             — invoke a method on a stored object
-    """
 
     def __init__(self, bridge: Bridge = None):
         self.bridge = bridge if bridge is not None else Bridge()
-
-    # ── Shared values ─────────────────────────────────────────────────────────
 
     def set(self, key: str, value):
         self.bridge.set(key, value)
@@ -39,13 +15,10 @@ class Context:
     def all(self) -> dict:
         return self.bridge.all_values()
 
-    # ── Functions ─────────────────────────────────────────────────────────────
-
     def register_python_function(self, name: str, func,
                                  param_types=None, return_type=None):
         self.bridge.register_python_function(name, func, param_types, return_type)
 
-    # Keep the old name as an alias so python_lang.py doesn't need changes.
     def export_function(self, name: str, func, language: str = "python",
                         param_types=None, return_type=None):
         self.bridge.register_python_function(name, func, param_types, return_type)
@@ -53,7 +26,6 @@ class Context:
     def register_class_schema(self, name: str, fields: dict[str, str]):
         self.bridge.register_class_schema(name, fields)
 
-    # Keep old alias used by python_lang.py.
     def export_class_schema(self, name: str, fields: dict[str, str]):
         self.bridge.register_class_schema(name, fields)
 
@@ -70,8 +42,6 @@ class Context:
 
     def call(self, name: str, *args):
         return self.bridge.call(name, *args, context=self)
-
-    # ── Object handle store ───────────────────────────────────────────────────
 
     def store_object(self, obj) -> int:
         return self.bridge.store_object(obj)

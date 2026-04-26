@@ -1,10 +1,3 @@
-"""
-value_types.py — Shared type system for the PLF bridge.
-
-PolyType  : enum of every type that can cross a language boundary.
-PolyValue : a typed wrapper around a plain Python value.
-"""
-
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any
@@ -24,8 +17,6 @@ class PolyType(Enum):
 
 @dataclass
 class PolyValue:
-    """A value tagged with its cross-language type."""
-
     type:  PolyType
     value: Any = None
 

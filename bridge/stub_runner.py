@@ -1,23 +1,10 @@
-"""
-stub_runner.py — Executes native-language function stubs on demand.
-
-When Python calls a function that was registered by a subprocess language
-(C, C++, JS, Java), we build a tiny wrapper snippet that calls the function
-and emits a __POLY_RET__ return line, then feeds it through the generic
-language runner.  This injects the full bridge template so the stub can
-itself call back into Python — enabling recursive cross-language calls.
-"""
-
 import json
 
 
 def _run(lang: str, code: str, context):
-    """Lazy import — avoids the circular import cycle with bridge/__init__.py."""
     from languages.runner import run
     return run(lang, code, context)
 
-
-# ── Python value → native literal converters ──────────────────────────────────
 
 def _c_literal(v) -> str:
     if v is None:            return "0"
@@ -46,8 +33,6 @@ def _java_literal(v) -> str:
 def _java_args(args: list) -> str:
     return ", ".join(_java_literal(a) for a in args)
 
-
-# ── Per-language stub wrappers ────────────────────────────────────────────────
 
 def _run_js_stub(fn_name, source, args, return_type, context):
     args_json = json.dumps(args)
@@ -125,14 +110,8 @@ def _run_java_stub(fn_name, source, args, return_type, context):
     return result[1] if isinstance(result, tuple) else None
 
 
-# ── Public entry point ────────────────────────────────────────────────────────
-
 def invoke(fn_name: str, language: str, source: str, return_type: str,
            args: list, context=None):
-    """
-    Re-execute a registered native-language function as a fresh subprocess.
-    Called by Dispatcher when a Python-side call targets a subprocess stub.
-    """
     lang = language.lower()
     if lang == "js":              return _run_js_stub  (fn_name, source, args, return_type, context)
     if lang == "c":               return _run_c_stub   (fn_name, source, args, return_type, context)

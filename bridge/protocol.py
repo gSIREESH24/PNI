@@ -1,25 +1,7 @@
-"""
-protocol.py — Bidirectional stdin/stdout pipe protocol for cross-language calls.
-
-Wire format
-───────────
-Subprocess → Python (written to subprocess stdout):
-    __POLY_CALL__|<name>|<json_array_args>     — call a Python-registered function
-    __POLY_METHOD__|<handle>|<method>|<json>   — call a method on a stored object
-    __POLY_REGISTER__|<name>|<lang>|<ret>|<src>— register this function as a stub
-    __POLY_EXPORT__...                         — language-specific export line
-
-Python → Subprocess (written to subprocess stdin):
-    __POLY_RET__|<type>|<value>                — typed return value
-    where type ∈ { int, float, bool, str, null }
-"""
-
 import json
 import subprocess
 import threading
 
-
-# ── Protocol marker constants ─────────────────────────────────────────────────
 
 CALL_MARKER     = "__POLY_CALL__|"
 RETURN_MARKER   = "__POLY_RET__|"
@@ -27,10 +9,7 @@ REGISTER_MARKER = "__POLY_REGISTER__|"
 METHOD_MARKER   = "__POLY_METHOD__|"
 
 
-# ── Return value codec ────────────────────────────────────────────────────────
-
 def encode_return(value) -> str:
-    """Encode a Python value into a __POLY_RET__ wire line."""
     if value is None:
         return f"{RETURN_MARKER}null|null\n"
     if isinstance(value, bool):
@@ -46,7 +25,6 @@ def encode_return(value) -> str:
 
 
 def decode_return(line: str):
-    """Parse a __POLY_RET__|type|value line back into a Python value."""
     if not line.startswith(RETURN_MARKER):
         return None
     body = line[len(RETURN_MARKER):]
@@ -68,27 +46,7 @@ def decode_return(line: str):
     return val.replace("\\n", "\n").replace("\\r", "\r").replace("\\\\", "\\")
 
 
-# ── Subprocess runner ─────────────────────────────────────────────────────────
-
 def run_subprocess(cmd: list, context, parse_export_line, cwd: str | None = None) -> tuple:
-    """
-    Launch a subprocess and drive the bridge pipe protocol until it exits.
-
-    Parameters
-    ----------
-    cmd              : Command + args for Popen.
-    context          : Active Context — exposes .call(), .call_method(),
-                       .register_function_stub().
-    parse_export_line: Language-specific parser.
-                       Returns {name: value} dict from an export line, or None.
-    cwd              : Optional working directory.
-
-    Returns
-    -------
-    (exports: dict, stub_return: Any)
-        exports      — all values collected from export markers
-        stub_return  — the last __POLY_RET__ value seen (used by stub calls)
-    """
     proc = subprocess.Popen(
         cmd,
         stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -99,7 +57,6 @@ def run_subprocess(cmd: list, context, parse_export_line, cwd: str | None = None
     stub_return       = None
     stderr_lines: list = []
 
-    # Drain stderr on a background thread to prevent pipe deadlocks.
     def _drain_stderr():
         for ln in proc.stderr:
             stderr_lines.append(ln.rstrip())
@@ -115,7 +72,6 @@ def run_subprocess(cmd: list, context, parse_export_line, cwd: str | None = None
         for raw in proc.stdout:
             line = raw.rstrip("\n").rstrip("\r")
 
-            # ── Function call request ─────────────────────────────────────────
             if line.startswith(CALL_MARKER):
                 payload = line[len(CALL_MARKER):]
                 sep     = payload.find("|")
@@ -133,7 +89,6 @@ def run_subprocess(cmd: list, context, parse_export_line, cwd: str | None = None
                     print(f"[Bridge] Error calling '{fn_name}': {exc}")
                 _send(result)
 
-            # ── Object method call ────────────────────────────────────────────
             elif line.startswith(METHOD_MARKER):
                 parts = line[len(METHOD_MARKER):].split("|", 2)
                 result = None
@@ -146,7 +101,6 @@ def run_subprocess(cmd: list, context, parse_export_line, cwd: str | None = None
                         print(f"[Bridge] Error calling method '{parts[1]}': {exc}")
                 _send(result)
 
-            # ── Function stub registration ────────────────────────────────────
             elif line.startswith(REGISTER_MARKER):
                 parts = line[len(REGISTER_MARKER):].split("|", 3)
                 if len(parts) == 4:
@@ -158,15 +112,12 @@ def run_subprocess(cmd: list, context, parse_export_line, cwd: str | None = None
                     except Exception as exc:
                         print(f"[Bridge] Failed to register stub '{name}': {exc}")
 
-            # ── Export line ───────────────────────────────────────────────────
             elif (parsed := parse_export_line(line)) is not None:
                 exports.update(parsed)
 
-            # ── Return value (stub calls) ─────────────────────────────────────
             elif line.startswith(RETURN_MARKER):
                 stub_return = decode_return(line)
 
-            # ── Normal program output ─────────────────────────────────────────
             else:
                 print(line)
 

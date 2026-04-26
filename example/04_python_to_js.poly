@@ -1,46 +1,28 @@
-# Example 04 — Python to JavaScript
-#
-# Demonstrates:
-#   - Python exports a value
-#   - JavaScript reads it with get_global()
-#   - JavaScript exports back with poly_export()
-#   - Python reads the JS result in a second Python block
-
 global {
     multiplier = 3
 }
-
 python {
     base = 100
     export("base", base)
     print(f"[Python] base = {base}, multiplier = {multiplier}")
     print(f"[Python] Expecting JS to compute base * multiplier = {base * multiplier}")
 }
-
 javascript {
     const base       = get_global("base");
     const multiplier = get_global("multiplier");
     const js_product = base * multiplier;
-
     console.log("[JS] base        = " + base);
     console.log("[JS] multiplier  = " + multiplier);
     console.log("[JS] js_product  = " + js_product);
-
     poly_export("js_product", js_product);
-
-    // JS can also do string work
     const label = "Result from JS: " + js_product;
     poly_export("js_label", label);
 }
-
 python {
-    # Second Python block reads what JS exported
     result = get_global("js_product")
     label  = get_global("js_label")
-
     print(f"[Python Block 2] js_product = {result}")
     print(f"[Python Block 2] js_label   = {label}")
-
     assert result == 300, f"Expected 300, got {result}"
     print("[Python Block 2] Assertion passed!")
 }

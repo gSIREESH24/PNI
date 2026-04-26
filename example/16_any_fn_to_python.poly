@@ -1,74 +1,47 @@
-# Example 16 — Subprocess Functions Called from Python
-#
-# Demonstrates Phase 3 Milestone 3:
-#   - poly_export_function(...) in JS
-#   - export_bridge_function(...) in C, C++, Java
-#
-# Python can call these functions using the bridge! The bridge saves the 
-# source code as a "stub" and when invoked, spins up a tiny, fast one-shot 
-# subprocess to execute just that function.
-
 javascript {
-    // 1. JS registering a function
     const js_multiplier = (a, b) => a * b * 10;
-    
     poly_export_function("js_multiplier", js_multiplier, "int");
     console.log("[JS] Registered fn: js_multiplier");
 }
-
 c {
-    // 2. C registering a function
-    // In C/C++, we pass the whole source definition as a string literal.
     const char* c_source = "long long c_adder(long long a, long long b) { return a + b + 100; }";
-    
     int main() {
         export_bridge_function("c_adder", c_source, "int");
         printf("[C] Registered fn: c_adder\n");
         return 0;
     }
 }
-
 cpp {
-    // 3. C++ registering a function
     const char* cpp_source = 
         "std::string cpp_greeter(const char* name) { "
         "    return std::string(\"Hello \\\"\") + name + \"\\\" from C++!\"; "
         "}";
-
     int main() {
         export_bridge_function("cpp_greeter", cpp_source, "str");
         std::cout << "[C++] Registered fn: cpp_greeter\n";
         return 0;
     }
 }
-
 java {
-    // 4. Java registering a function
     class Main {
         public static void main(String[] args) {
             String javaSource = 
                 "public static boolean java_is_even(long n) { " +
                 "    return n % 2 == 0; " +
                 "}";
-                
             export_bridge_function("java_is_even", javaSource, "bool");
             System.out.println("[Java] Registered fn: java_is_even");
         }
     }
 }
-
 python {
     print("\n--- Python calling subprocess stubs ---")
-    
     r_js = call("js_multiplier", 5, 4)
     print(f"Call JS -> js_multiplier(5, 4) = {r_js}  (Expected: 200)")
-    
     r_c = call("c_adder", 50, 25)
     print(f"Call C -> c_adder(50, 25)      = {r_c}  (Expected: 175)")
-    
     r_cpp = call("cpp_greeter", "Polyglot")
     print(f"Call C++ -> cpp_greeter(...)   = {r_cpp}")
-    
     r_j1 = call("java_is_even", 42)
     r_j2 = call("java_is_even", 43)
     print(f"Call Java -> java_is_even(42)  = {r_j1}")

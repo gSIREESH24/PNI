@@ -1,18 +1,3 @@
-# Example 11 — Running Counter Incremented by Each Language
-#
-# Demonstrates:
-#   - A counter that starts at 0 and each language adds its own step
-#   - Each language reads the current counter from the bridge, increments, exports
-#   - Shows that the bridge acts as shared mutable state across languages
-#
-# Counter steps:
-#   global      = 0
-#   Python  +10 = 10
-#   JS      +5  = 15
-#   C       +3  = 18
-#   C++     +7  = 25
-#   Java    +2  = 27
-
 global {
     counter = 0
     step_py   = 10
@@ -21,13 +6,11 @@ global {
     step_cpp  = 7
     step_java = 2
 }
-
 python {
     new_counter = counter + step_py
     export("counter", new_counter)
     print(f"[Python] counter: {counter} + {step_py} = {new_counter}")
 }
-
 javascript {
     const old = get_global("counter");
     const step = get_global("step_js");
@@ -35,7 +18,6 @@ javascript {
     poly_export("counter", updated);
     console.log("[JS] counter: " + old + " + " + step + " = " + updated);
 }
-
 c {
     int main() {
         long long updated = counter + step_c;
@@ -44,7 +26,6 @@ c {
         return 0;
     }
 }
-
 cpp {
     int main() {
         long long updated = counter + step_cpp;
@@ -54,7 +35,6 @@ cpp {
         return 0;
     }
 }
-
 java {
     class Main {
         public static void main(String[] args) {
@@ -65,7 +45,6 @@ java {
         }
     }
 }
-
 python {
     final = get_global("counter_final")
     expected = step_py + step_js + step_c + step_cpp + step_java

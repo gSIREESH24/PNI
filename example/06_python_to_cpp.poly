@@ -1,36 +1,21 @@
-# Example 06 — Python to C++
-#
-# Demonstrates:
-#   - Python exports values
-#   - C++ reads them, uses std::string + numeric operations
-#   - C++ exports results using the polybridge:: overloaded export_value()
-#   - Results flow back to Python
-
 global {
     base_score = 80
 }
-
 python {
     player_name = "Alice"
     bonus       = 15
     penalty     = 5
-
     export("player_name", player_name)
     export("bonus",       bonus)
     export("penalty",     penalty)
-
     print(f"[Python] Player: {player_name}, bonus={bonus}, penalty={penalty}")
 }
-
 cpp {
     int main() {
-        // Read bridge values
         std::cout << "[C++] player_name = " << player_name  << std::endl;
         std::cout << "[C++] base_score  = " << base_score   << std::endl;
         std::cout << "[C++] bonus       = " << bonus        << std::endl;
         std::cout << "[C++] penalty     = " << penalty      << std::endl;
-
-        // Compute final score
         long long final_score = base_score + bonus - penalty;
         bool      is_winner   = final_score >= 85;
         std::string grade     = (final_score >= 90) ? "A" :
@@ -38,26 +23,21 @@ cpp {
                                 (final_score >= 70) ? "C" : "D";
         std::string result_str = std::string(player_name) + " scored " +
                                  std::to_string(final_score) + " [" + grade + "]";
-
         std::cout << "[C++] final_score = " << final_score << std::endl;
         std::cout << "[C++] grade       = " << grade       << std::endl;
         std::cout << "[C++] is_winner   = " << std::boolalpha << is_winner << std::endl;
-
         export_value("final_score", final_score);
         export_value("grade",       grade);
         export_value("is_winner",   is_winner);
         export_value("result_str",  result_str);
-
         return 0;
     }
 }
-
 python {
     score      = get_global("final_score")
     grade      = get_global("grade")
     is_winner  = get_global("is_winner")
     result_str = get_global("result_str")
-
     print(f"[Python Block 2] score     = {score}")
     print(f"[Python Block 2] grade     = {grade}")
     print(f"[Python Block 2] is_winner = {is_winner}")
