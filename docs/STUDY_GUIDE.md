@@ -1,5 +1,4 @@
 # 📖 Phase-2 Polyglot Runtime Framework — Complete Study Guide
-> **For exam preparation — read this file top to bottom. Everything is explained simply.**
 
 ---
 
